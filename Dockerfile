@@ -158,6 +158,10 @@ RUN mkdir -p ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway && \
     install -D $(find ./third_party/googleapis/google/rpc -name '*.proto') -t /out/usr/include/google/rpc
 
 # other go tools
+ENV GOPATH=/go \
+        PATH=/go/bin/:$PATH \
+        GO111MODULE=on
+
 RUN go get -u -v -ldflags '-w -s' \
         github.com/mwitkow/go-proto-validators/protoc-gen-govalidators \
         github.com/envoyproxy/protoc-gen-validate \
