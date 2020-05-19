@@ -164,7 +164,6 @@ ENV GOPATH=/go \
 
 RUN go get -v -ldflags '-w -s' \
         github.com/mwitkow/go-proto-validators/protoc-gen-govalidators \
-        github.com/ti/protoc-gen-rest \
         && install -c ${GOPATH}/bin/protoc-gen* /out/usr/bin/ && \
         install -D ${GOPATH}/src/github.com/mwitkow/go-proto-validators/validator.proto /out/usr/include/github.com/mwitkow/go-proto-validators/validator.proto
 
