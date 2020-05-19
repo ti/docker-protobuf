@@ -163,8 +163,6 @@ ENV GOPATH=/go \
         GO111MODULE=on
 
 RUN go get -u -v -ldflags '-w -s' \
-        github.com/mwitkow/go-proto-validators/protoc-gen-govalidators \
-        github.com/envoyproxy/protoc-gen-validate \
         github.com/ti/protoc-gen-rest \
         && install -c ${GOPATH}/bin/protoc-gen* /out/usr/bin/
 
