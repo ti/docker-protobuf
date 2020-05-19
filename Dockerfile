@@ -157,12 +157,12 @@ RUN mkdir -p ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway && \
     mkdir -p /out/usr/include/google/rpc && \
     install -D $(find ./third_party/googleapis/google/rpc -name '*.proto') -t /out/usr/include/google/rpc
 
-# other gotools
+# other go tools
 RUN go get -u -v -ldflags '-w -s' \
         github.com/mwitkow/go-proto-validators/protoc-gen-govalidators \
         github.com/envoyproxy/protoc-gen-validate \
         github.com/ti/protoc-gen-rest \
-        && install -c ${GOPATH}/bin/protoc-gen* ${OUTDIR}/out/usr/bin/
+        && install -c ${GOPATH}/bin/protoc-gen* /out/usr/bin/
 
 FROM rust:${RUST_VERSION}-slim as rust_builder
 RUN apt-get update && apt-get install -y musl-tools curl
