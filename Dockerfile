@@ -160,11 +160,13 @@ RUN mkdir -p ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway && \
 # other go tools
 ENV GOPATH=/go \
         PATH=/go/bin/:$PATH \
-        GO111MODULE=on
+        GO111MODULE=off
 
-RUN go get -u -v -ldflags '-w -s' \
+RUN go get -v -ldflags '-w -s' \
+        github.com/mwitkow/go-proto-validators/protoc-gen-govalidators \
         github.com/ti/protoc-gen-rest \
-        && install -c ${GOPATH}/bin/protoc-gen* /out/usr/bin/
+        && install -c ${GOPATH}/bin/protoc-gen* /out/usr/bin/ && \
+        install -D ${GOPATH}/src/github.com/mwitkow/go-proto-validators/validator.proto /out/usr/include/github.com/mwitkow/go-proto-validators/validator.proto
 
 FROM rust:${RUST_VERSION}-slim as rust_builder
 RUN apt-get update && apt-get install -y musl-tools curl
