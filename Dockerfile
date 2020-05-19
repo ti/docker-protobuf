@@ -2,7 +2,7 @@ ARG ALPINE_VERSION=3.11
 ARG DART_PROTOBUF_VERSION=1.0.1
 ARG DART_VERSION=2.7.2
 ARG GO_VERSION=1.14.2
-ARG GRPC_GATEWAY_VERSION=1.14.4
+ARG GRPC_GATEWAY_VERSION=1.14.5
 ARG GRPC_JAVA_VERSION=1.29.0
 ARG GRPC_RUST_VERSION=0.7.1
 ARG GRPC_SWIFT_VERSION=0.10.0
@@ -157,6 +157,12 @@ RUN mkdir -p ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway && \
     mkdir -p /out/usr/include/google/rpc && \
     install -D $(find ./third_party/googleapis/google/rpc -name '*.proto') -t /out/usr/include/google/rpc
 
+# other gotools
+RUN go get -u -v -ldflags '-w -s' \
+        github.com/mwitkow/go-proto-validators/protoc-gen-govalidators \
+        github.com/envoyproxy/protoc-gen-validate \
+        github.com/ti/protoc-gen-rest \
+        && install -c ${GOPATH}/bin/protoc-gen* ${OUTDIR}/out/usr/bin/
 
 FROM rust:${RUST_VERSION}-slim as rust_builder
 RUN apt-get update && apt-get install -y musl-tools curl
@@ -227,7 +233,6 @@ RUN upx --lzma $(find /out/usr/bin/ \
 RUN find /out -name "*.a" -delete -or -name "*.la" -delete
 
 FROM alpine:${ALPINE_VERSION}
-LABEL maintainer="Roman Volosatovs <roman@thethingsnetwork.org>"
 COPY --from=packer /out/ /
 RUN apk add --no-cache bash libstdc++ && \
     wget -q -O /etc/apk/keys/sgerrand.rsa.pub https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub && \
