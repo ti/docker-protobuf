@@ -97,7 +97,7 @@ RUN chown -R nobody.nobody /usr/include
 WORKDIR /build/proto
 # the example to build the proto to test folder
 # docker run --rm -u $(sh id -u ${USER}):$(sh id -g ${USER}) -v $(pwd)/test:/build/go test:latest
-CMD ["protoc","-I", ".",  \
+CMD ["protoc","-I", ".", "--proto_path=/usr/include",  \
   "--go_out","../go","--go_opt","paths=source_relative",  \
   "--go-grpc_out","../go","--go-grpc_opt","paths=source_relative",  \
   "--grpc-gateway_out","../go","--grpc-gateway_opt","logtostderr=true",  \
