@@ -68,8 +68,9 @@ ARG GO_PROTO_VALIDATORS_VERSION
 RUN mkdir -p ${GOPATH}/src/github.com/mwitkow/go-proto-validators && \
     curl -sSL https://github.com/mwitkow/go-proto-validators/archive/v${GO_PROTO_VALIDATORS_VERSION}.tar.gz | tar xz --strip 1 -C ${GOPATH}/src/github.com/mwitkow/go-proto-validators && \
     cd ${GOPATH}/src/github.com/mwitkow/go-proto-validators && \
-    go build -ldflags '-w -s' -o /protoc-gen-doc-out/protoc-gen-govalidators ./protoc-gen-govalidators && \
-    install -Ds /protoc-gen-doc-out/protoc-gen-govalidators /out/usr/bin/protoc-gen-govalidators
+    install -D validator.proto /out/usr/include/github.com/mwitkow/go-proto-validators/validator.proto && \
+    go build -ldflags '-w -s' -o /protoc-gen-govalidators-out/protoc-gen-govalidators ./protoc-gen-govalidators && \
+    install -Ds /protoc-gen-govalidators-out/protoc-gen-govalidators /out/usr/bin/protoc-gen-govalidators
 
 FROM alpine:${ALPINE_VERSION}
 COPY --from=go_builder /out/ /
