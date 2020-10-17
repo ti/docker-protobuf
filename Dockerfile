@@ -95,7 +95,6 @@ service YourService { \n\
 RUN chown -R nobody.nobody /build
 RUN chown -R nobody.nobody /usr/include
 WORKDIR /build/proto
-USER nobody
 # the example to build the proto to test folder
 # docker run --rm -u $(sh id -u ${USER}):$(sh id -g ${USER}) -v $(pwd)/test:/build/go test:latest
 CMD ["protoc","-I", ".",  \
