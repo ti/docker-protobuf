@@ -106,5 +106,5 @@ RUN chown -R nobody.nobody /build
 RUN chown -R nobody.nobody /usr/include
 WORKDIR /build/proto
 # the example to build the proto to test folder
-# docker run --rm -v $(pwd)/go:/build/go -v $(pwd):/build/proto protoc:latest
+# docker run --rm -v $(shell pwd)/pkg/go:/build/go -v $(shell pwd)/pkg/openapi:/build/openapi -v $(shell pwd):/build/proto nanxi/protoc:go
 CMD ["/bin/sh", "-c", "/build/build.sh"]
