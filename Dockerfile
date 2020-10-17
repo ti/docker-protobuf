@@ -93,17 +93,27 @@ service YourService { \n\
      }; \n\
     } \n\
 }' >> /build/proto/main.proto
+RUN echo $'find ./ -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
+ --go_out /build/go --go_opt paths=source_relative \
+ --go-grpc_out /build/go --go-grpc_opt paths=source_relative \
+ --grpc-gateway_out /build/go --grpc-gateway_opt logtostderr=true \
+ --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=true \
+ --validate_out=lang=go,paths=source_relative:/build/go \
+ --openapiv2_out /build/openapi --openapiv2_opt \
+logtostderr=true {} +' >> /build/build.sh
+RUN chmod +x /build/build.sh
 RUN chown -R nobody.nobody /build
 RUN chown -R nobody.nobody /usr/include
 WORKDIR /build/proto
 # the example to build the proto to test folder
-# docker run --rm -u $(sh id -u ${USER}):$(sh id -g ${USER}) -v $(pwd)/test:/build/go test:latest
-CMD ["protoc","-I", ".", "--proto_path=/usr/include",  \
-  "--go_out","../go","--go_opt","paths=source_relative",  \
-  "--go-grpc_out","../go","--go-grpc_opt","paths=source_relative",  \
-  "--grpc-gateway_out","../go","--grpc-gateway_opt","logtostderr=true",  \
-  "--grpc-gateway_opt","paths=source_relative","--grpc-gateway_opt","generate_unbound_methods=true",  \
-  "--validate_out=lang=go,paths=source_relative:../go",  \
-  "--openapiv2_out","../openapi","--openapiv2_opt","logtostderr=true", \
-  "./main.proto" \
-]
+# docker run --rm -v $(pwd)/go:/build/go -v $(pwd):/build/proto protoc:latest
+CMD ["/bin/sh", "-c", "/build/build.sh"]
+#CMD ["protoc","-I", ".", "--proto_path=/usr/include",  \
+#  "--go_out","../go","--go_opt","paths=source_relative",  \
+#  "--go-grpc_out","../go","--go-grpc_opt","paths=source_relative",  \
+#  "--grpc-gateway_out","../go","--grpc-gateway_opt","logtostderr=true",  \
+#  "--grpc-gateway_opt","paths=source_relative","--grpc-gateway_opt","generate_unbound_methods=true",  \
+#  "--validate_out=lang=go,paths=source_relative:../go",  \
+#  "--openapiv2_out","../openapi","--openapiv2_opt","logtostderr=true", \
+#  "./main.proto" \
+#]
