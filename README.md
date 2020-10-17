@@ -1,5 +1,3 @@
-![](https://github.com/ti/docker-protobuf/workflows/Docker%20Image/badge.svg)
-
 # Protocol Buffers + Docker
 
 include all golang tools
