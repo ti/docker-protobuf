@@ -1,21 +1,26 @@
 ARG ALPINE_VERSION=3.12
+ARG GLIBC_VERSION=2.32-r0
 ARG GO_VERSION=1.15
 ARG GRPC_GATEWAY_VERSION=2.1.0
 ARG PROTOC_GEN_VALIDATE_VERSION=0.4.1
-ARG GO_PROTO_VALIDATORS_VERSION=0.3.2
 ARG PROTOBUF_VERSION=3.14.0
 ARG PROTOC_GEN_DOC_VERSION=1.3.2
 ARG PROTOC_GEN_GO_VERSION=1.25.0
 ARG PROTOC_GEN_GO_GRPC_VERSION=1.1.0
 
-FROM golang:${GO_VERSION}-alpine${ALPINE_VERSION} as go_builder
+FROM golang:${GO_VERSION}-alpine${ALPINE_VERSION} as builder
 RUN apk add --no-cache build-base curl unzip git
+
+ARG GLIBC_VERSION
+RUN curl -sSL https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub -o /etc/apk/keys/sgerrand.rsa.pub  && \
+    curl -sSL https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VERSION}/glibc-${GLIBC_VERSION}.apk -o /tmp/glibc.apk  && \
+    apk add /tmp/glibc.apk && \
+    rm /etc/apk/keys/sgerrand.rsa.pub /tmp/glibc.apk
 
 ARG PROTOBUF_VERSION
 RUN mkdir -p /out/usr/
 RUN curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protoc-${PROTOBUF_VERSION}-linux-x86_64.zip -o /tmp/protobuf.zip  && \
     unzip /tmp/protobuf.zip -d /out/usr/ && \
-    rm -rf /out/usr/bin \
     rm /out/usr/readme.txt
 
 ARG PROTOC_GEN_GO_VERSION
@@ -63,18 +68,17 @@ RUN mkdir -p ${GOPATH}/src/github.com/pseudomuto/protoc-gen-doc && \
     go build -ldflags '-w -s' -o /protoc-gen-doc-out/protoc-gen-doc ./cmd/protoc-gen-doc && \
     install -Ds /protoc-gen-doc-out/protoc-gen-doc /out/usr/bin/protoc-gen-doc
 
-ARG GO_PROTO_VALIDATORS_VERSION
-RUN mkdir -p ${GOPATH}/src/github.com/mwitkow/go-proto-validators && \
-    curl -sSL https://github.com/mwitkow/go-proto-validators/archive/v${GO_PROTO_VALIDATORS_VERSION}.tar.gz | tar xz --strip 1 -C ${GOPATH}/src/github.com/mwitkow/go-proto-validators && \
-    cd ${GOPATH}/src/github.com/mwitkow/go-proto-validators && \
-    install -D validator.proto /out/usr/include/github.com/mwitkow/go-proto-validators/validator.proto && \
-    go build -ldflags '-w -s' -o /protoc-gen-govalidators-out/protoc-gen-govalidators ./protoc-gen-govalidators && \
-    install -Ds /protoc-gen-govalidators-out/protoc-gen-govalidators /out/usr/bin/protoc-gen-govalidators
-
 FROM alpine:${ALPINE_VERSION}
-COPY --from=go_builder /out/ /
-ARG PROTOBUF_VERSION
-RUN apk add --no-cache protoc=${PROTOBUF_VERSION}-r0 --repository=http://dl-cdn.alpinelinux.org/alpine/edge/main
+COPY --from=builder /out/ /
+
+RUN apk add --no-cache curl
+
+ARG GLIBC_VERSION
+RUN curl -sSL https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub -o /etc/apk/keys/sgerrand.rsa.pub  && \
+    curl -sSL https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VERSION}/glibc-${GLIBC_VERSION}.apk -o /tmp/glibc.apk  && \
+    apk add /tmp/glibc.apk && \
+    rm /etc/apk/keys/sgerrand.rsa.pub /tmp/glibc.apk
+
 RUN mkdir -p /build/proto /build/go /build/openapi
 # Exmaple Proto
 RUN echo $'syntax = "proto3"; \n\
