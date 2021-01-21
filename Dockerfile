@@ -9,13 +9,12 @@ ARG PROTOC_GEN_GO_VERSION=1.25.0
 ARG PROTOC_GEN_GO_GRPC_VERSION=1.1.0
 
 FROM golang:${GO_VERSION}-alpine${ALPINE_VERSION} as builder
-RUN apk add --no-cache build-base curl unzip git
+RUN apk add --no-cache build-base curl git unzip
 
 ARG GLIBC_VERSION
-RUN curl -sSL https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub -o /etc/apk/keys/sgerrand.rsa.pub  && \
-    curl -sSL https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VERSION}/glibc-${GLIBC_VERSION}.apk -o /tmp/glibc.apk  && \
-    apk add /tmp/glibc.apk && \
-    rm /etc/apk/keys/sgerrand.rsa.pub /tmp/glibc.apk
+RUN mkdir -p /out/tmp/ /out/etc/apk/keys/
+RUN curl -sSL https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub -o /out/etc/apk/keys/sgerrand.rsa.pub  && \
+    curl -sSL https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VERSION}/glibc-${GLIBC_VERSION}.apk -o /out/tmp/glibc.apk
 
 ARG PROTOBUF_VERSION
 RUN mkdir -p /out/usr/
@@ -71,12 +70,7 @@ RUN mkdir -p ${GOPATH}/src/github.com/pseudomuto/protoc-gen-doc && \
 FROM alpine:${ALPINE_VERSION}
 COPY --from=builder /out/ /
 
-RUN apk add --no-cache curl
-
-ARG GLIBC_VERSION
-RUN curl -sSL https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub -o /etc/apk/keys/sgerrand.rsa.pub  && \
-    curl -sSL https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VERSION}/glibc-${GLIBC_VERSION}.apk -o /tmp/glibc.apk  && \
-    apk add /tmp/glibc.apk && \
+RUN apk add --no-cache /tmp/glibc.apk && \
     rm /etc/apk/keys/sgerrand.rsa.pub /tmp/glibc.apk
 
 RUN mkdir -p /build/proto /build/go /build/openapi
