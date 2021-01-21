@@ -9,7 +9,7 @@ ARG PROTOC_GEN_GO_VERSION=1.25.0
 ARG PROTOC_GEN_GO_GRPC_VERSION=1.1.0
 
 FROM golang:${GO_VERSION}-alpine${ALPINE_VERSION} as builder
-RUN apk add --no-cache build-base curl git unzip
+RUN apk add --no-cache build-base curl git upx
 
 ARG GLIBC_VERSION
 RUN mkdir -p /out/tmp/ /out/etc/apk/keys/
@@ -26,14 +26,14 @@ ARG PROTOC_GEN_GO_VERSION
 RUN mkdir -p ${GOPATH}/src/github.com/protocolbuffers/protobuf-go && \
     curl -sSL https://codeload.github.com/protocolbuffers/protobuf-go/tar.gz/v${PROTOC_GEN_GO_VERSION} | tar xz --strip 1 -C ${GOPATH}/src/github.com/protocolbuffers/protobuf-go &&\
     cd ${GOPATH}/src/github.com/protocolbuffers/protobuf-go && \
-    go build -ldflags '-w -s' -o /golang-protobuf-out/protoc-gen-go ./cmd/protoc-gen-go && \
+    CGO_ENABLED=0 go build -ldflags '-w -s' -o /golang-protobuf-out/protoc-gen-go ./cmd/protoc-gen-go && \
     install -Ds /golang-protobuf-out/protoc-gen-go /out/usr/bin/protoc-gen-go
 
 ARG PROTOC_GEN_GO_GRPC_VERSION
 RUN mkdir -p ${GOPATH}/src/github.com/grpc/grpc-go && \
     curl -sSL https://codeload.github.com/grpc/grpc-go/tar.gz/cmd/protoc-gen-go-grpc/v${PROTOC_GEN_GO_GRPC_VERSION} | tar xz --strip 1 -C ${GOPATH}/src/github.com/grpc/grpc-go &&\
     cd ${GOPATH}/src/github.com/grpc/grpc-go/cmd/protoc-gen-go-grpc && \
-    go build -ldflags '-w -s' -o /golang-protobuf-out/protoc-gen-go-grpc && \
+    CGO_ENABLED=0 go build -ldflags '-w -s' -o /golang-protobuf-out/protoc-gen-go-grpc && \
     install -Ds /golang-protobuf-out/protoc-gen-go-grpc /out/usr/bin/protoc-gen-go-grpc
 
 ARG PROTOC_GEN_VALIDATE_VERSION
@@ -49,8 +49,8 @@ ARG GRPC_GATEWAY_VERSION
 RUN mkdir -p ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway && \
     curl -sSL https://api.github.com/repos/grpc-ecosystem/grpc-gateway/tarball/v${GRPC_GATEWAY_VERSION} | tar xz --strip 1 -C ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway && \
     cd ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway && \
-    go build -ldflags '-w -s' -o /grpc-gateway-out/protoc-gen-grpc-gateway ./protoc-gen-grpc-gateway && \
-    go build -ldflags '-w -s' -o /grpc-gateway-out/protoc-gen-openapiv2 ./protoc-gen-openapiv2 && \
+    CGO_ENABLED=0 go build -ldflags '-w -s' -o /grpc-gateway-out/protoc-gen-grpc-gateway ./protoc-gen-grpc-gateway && \
+    CGO_ENABLED=0 go build -ldflags '-w -s' -o /grpc-gateway-out/protoc-gen-openapiv2 ./protoc-gen-openapiv2 && \
     install -Ds /grpc-gateway-out/protoc-gen-grpc-gateway /out/usr/bin/protoc-gen-grpc-gateway && \
     install -Ds /grpc-gateway-out/protoc-gen-openapiv2 /out/usr/bin/protoc-gen-openapiv2 && \
     mkdir -p /out/usr/include/protoc-gen-openapiv2/options && \
@@ -64,8 +64,15 @@ ARG PROTOC_GEN_DOC_VERSION
 RUN mkdir -p ${GOPATH}/src/github.com/pseudomuto/protoc-gen-doc && \
     curl -sSL https://api.github.com/repos/pseudomuto/protoc-gen-doc/tarball/v${PROTOC_GEN_DOC_VERSION} | tar xz --strip 1 -C ${GOPATH}/src/github.com/pseudomuto/protoc-gen-doc && \
     cd ${GOPATH}/src/github.com/pseudomuto/protoc-gen-doc && \
-    go build -ldflags '-w -s' -o /protoc-gen-doc-out/protoc-gen-doc ./cmd/protoc-gen-doc && \
+    CGO_ENABLED=0 go build -ldflags '-w -s' -o /protoc-gen-doc-out/protoc-gen-doc ./cmd/protoc-gen-doc && \
     install -Ds /protoc-gen-doc-out/protoc-gen-doc /out/usr/bin/protoc-gen-doc
+
+# UPX
+RUN mkdir -p /upx/out/usr/bin/ &&\
+  for bin in /out/usr/bin/*; do upx --best ${bin} -o /upx${bin} ; done && \
+  rm -rf /out/usr/bin && \
+  mv /upx/out/usr/bin /out/usr/bin &&  \
+  rm -rf /upx
 
 FROM alpine:${ALPINE_VERSION}
 COPY --from=builder /out/ /
