@@ -68,11 +68,10 @@ RUN mkdir -p ${GOPATH}/src/github.com/pseudomuto/protoc-gen-doc && \
     install -Ds /protoc-gen-doc-out/protoc-gen-doc /out/usr/bin/protoc-gen-doc
 
 # UPX
-RUN mkdir -p /upx/out/usr/bin/ &&\
-  for bin in /out/usr/bin/*; do upx --best ${bin} -o /upx${bin} ; done && \
-  rm -rf /out/usr/bin && \
-  mv /upx/out/usr/bin /out/usr/bin &&  \
-  rm -rf /upx
+RUN upx --lzma $(find /out/usr/bin/ \
+        -type f -name 'proto*' \
+    )
+
 
 FROM alpine:${ALPINE_VERSION}
 COPY --from=builder /out/ /
