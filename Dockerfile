@@ -1,7 +1,7 @@
 ARG ALPINE_VERSION=3.13
 ARG GLIBC_VERSION=2.33-r0
 ARG GO_VERSION=1.16
-ARG PROTOBUF_VERSION=v3.15.6
+ARG PROTOBUF_VERSION=3.15.6
 ARG PROTOC_GEN_GO_VERSION=master
 ARG PROTOC_GEN_GO_GRPC_VERSION=v1.35.1
 ARG PROTOC_GEN_VALIDATE_VERSION=v0.4.1
@@ -19,7 +19,7 @@ RUN curl -sSL https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub -o /out/etc/apk/
 
 ARG PROTOBUF_VERSION
 RUN mkdir -p /out/usr/
-RUN curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/${PROTOBUF_VERSION}/protoc-${PROTOBUF_VERSION}-linux-x86_64.zip -o /tmp/protobuf.zip  && \
+RUN curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protoc-${PROTOBUF_VERSION}-linux-x86_64.zip -o /tmp/protobuf.zip  && \
     unzip /tmp/protobuf.zip -d /out/usr/ && \
     rm /out/usr/readme.txt
 
