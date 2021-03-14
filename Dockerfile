@@ -5,7 +5,7 @@ ARG GRPC_GATEWAY_VERSION=2.2.0
 ARG PROTOC_GEN_VALIDATE_VERSION=0.4.1
 ARG PROTOBUF_VERSION=3.15.1
 ARG PROTOC_GEN_DOC_VERSION=1.4.1
-ARG PROTOC_GEN_GO_VERSION=1.25.0
+ARG PROTOC_GEN_GO_VERSION=master
 ARG PROTOC_GEN_GO_GRPC_VERSION=1.1.0
 
 FROM golang:${GO_VERSION}-alpine${ALPINE_VERSION} as builder
@@ -24,7 +24,7 @@ RUN curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v${P
 
 ARG PROTOC_GEN_GO_VERSION
 RUN mkdir -p ${GOPATH}/src/github.com/protocolbuffers/protobuf-go && \
-    curl -sSL https://codeload.github.com/protocolbuffers/protobuf-go/tar.gz/v${PROTOC_GEN_GO_VERSION} | tar xz --strip 1 -C ${GOPATH}/src/github.com/protocolbuffers/protobuf-go &&\
+    curl -sSL https://codeload.github.com/protocolbuffers/protobuf-go/tar.gz/${PROTOC_GEN_GO_VERSION} | tar xz --strip 1 -C ${GOPATH}/src/github.com/protocolbuffers/protobuf-go &&\
     cd ${GOPATH}/src/github.com/protocolbuffers/protobuf-go && \
     CGO_ENABLED=0 go build -ldflags '-w -s' -o /golang-protobuf-out/protoc-gen-go ./cmd/protoc-gen-go && \
     install -Ds /golang-protobuf-out/protoc-gen-go /out/usr/bin/protoc-gen-go
