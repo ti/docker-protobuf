@@ -1,12 +1,13 @@
 ARG ALPINE_VERSION=3.13
-ARG GLIBC_VERSION=2.32-r0
+ARG GLIBC_VERSION=2.33-r0
 ARG GO_VERSION=1.16
-ARG GRPC_GATEWAY_VERSION=2.2.0
-ARG PROTOC_GEN_VALIDATE_VERSION=0.4.1
-ARG PROTOBUF_VERSION=3.15.1
-ARG PROTOC_GEN_DOC_VERSION=1.4.1
+ARG PROTOBUF_VERSION=v3.15.6
 ARG PROTOC_GEN_GO_VERSION=master
-ARG PROTOC_GEN_GO_GRPC_VERSION=1.1.0
+ARG PROTOC_GEN_GO_GRPC_VERSION=v1.35.1
+ARG PROTOC_GEN_VALIDATE_VERSION=v0.4.1
+ARG GRPC_GATEWAY_VERSION=v2.3.0
+ARG PROTOC_GEN_DOC_VERSION=v1.4.1
+ARG GOOGLEAPIS_VERSION=master
 
 FROM golang:${GO_VERSION}-alpine${ALPINE_VERSION} as builder
 RUN apk add --no-cache build-base curl git upx
@@ -18,7 +19,7 @@ RUN curl -sSL https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub -o /out/etc/apk/
 
 ARG PROTOBUF_VERSION
 RUN mkdir -p /out/usr/
-RUN curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protoc-${PROTOBUF_VERSION}-linux-x86_64.zip -o /tmp/protobuf.zip  && \
+RUN curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/${PROTOBUF_VERSION}/protoc-${PROTOBUF_VERSION}-linux-x86_64.zip -o /tmp/protobuf.zip  && \
     unzip /tmp/protobuf.zip -d /out/usr/ && \
     rm /out/usr/readme.txt
 
@@ -31,15 +32,14 @@ RUN mkdir -p ${GOPATH}/src/github.com/protocolbuffers/protobuf-go && \
 
 ARG PROTOC_GEN_GO_GRPC_VERSION
 RUN mkdir -p ${GOPATH}/src/github.com/grpc/grpc-go && \
-    curl -sSL https://codeload.github.com/grpc/grpc-go/tar.gz/cmd/protoc-gen-go-grpc/v${PROTOC_GEN_GO_GRPC_VERSION} | tar xz --strip 1 -C ${GOPATH}/src/github.com/grpc/grpc-go &&\
+    curl -sSL https://codeload.github.com/grpc/grpc-go/tar.gz/cmd/protoc-gen-go-grpc/${PROTOC_GEN_GO_GRPC_VERSION} | tar xz --strip 1 -C ${GOPATH}/src/github.com/grpc/grpc-go &&\
     cd ${GOPATH}/src/github.com/grpc/grpc-go/cmd/protoc-gen-go-grpc && \
     CGO_ENABLED=0 go build -ldflags '-w -s' -o /golang-protobuf-out/protoc-gen-go-grpc && \
     install -Ds /golang-protobuf-out/protoc-gen-go-grpc /out/usr/bin/protoc-gen-go-grpc
 
 ARG PROTOC_GEN_VALIDATE_VERSION
-RUN echo v${PROTOC_GEN_VALIDATE_VERSION}
 RUN mkdir -p ${GOPATH}/src/github.com/envoyproxy/protoc-gen-validate && \
-    curl -sSL https://api.github.com/repos/envoyproxy/protoc-gen-validate/tarball/v${PROTOC_GEN_VALIDATE_VERSION} | tar xz --strip 1 -C ${GOPATH}/src/github.com/envoyproxy/protoc-gen-validate && \
+    curl -sSL https://api.github.com/repos/envoyproxy/protoc-gen-validate/tarball/${PROTOC_GEN_VALIDATE_VERSION} | tar xz --strip 1 -C ${GOPATH}/src/github.com/envoyproxy/protoc-gen-validate && \
     cd ${GOPATH}/src/github.com/envoyproxy/protoc-gen-validate && \
     go build -ldflags '-w -s' -o /protoc-gen-validate-out/protoc-gen-validate . && \
     install -Ds /protoc-gen-validate-out/protoc-gen-validate /out/usr/bin/protoc-gen-validate && \
@@ -47,7 +47,7 @@ RUN mkdir -p ${GOPATH}/src/github.com/envoyproxy/protoc-gen-validate && \
 
 ARG GRPC_GATEWAY_VERSION
 RUN mkdir -p ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway && \
-    curl -sSL https://api.github.com/repos/grpc-ecosystem/grpc-gateway/tarball/v${GRPC_GATEWAY_VERSION} | tar xz --strip 1 -C ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway && \
+    curl -sSL https://api.github.com/repos/grpc-ecosystem/grpc-gateway/tarball/${GRPC_GATEWAY_VERSION} | tar xz --strip 1 -C ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway && \
     cd ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway && \
     CGO_ENABLED=0 go build -ldflags '-w -s' -o /grpc-gateway-out/protoc-gen-grpc-gateway ./protoc-gen-grpc-gateway && \
     CGO_ENABLED=0 go build -ldflags '-w -s' -o /grpc-gateway-out/protoc-gen-openapiv2 ./protoc-gen-openapiv2 && \
@@ -55,14 +55,20 @@ RUN mkdir -p ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway && \
     install -Ds /grpc-gateway-out/protoc-gen-openapiv2 /out/usr/bin/protoc-gen-openapiv2 && \
     mkdir -p /out/usr/include/protoc-gen-openapiv2/options && \
     install -D $(find ./protoc-gen-openapiv2/options -name '*.proto') -t /out/usr/include/protoc-gen-openapiv2/options && \
+
+ARG GOOGLEAPIS_VERSION
+RUN mkdir -p ${GOPATH}/src/github.com/googleapis/googleapis && \
+    curl -sSL https://api.github.com/repos/googleapis/googleapis/tarball/${GOOGLEAPIS_VERSION} | tar xz --strip 1 -C ${GOPATH}/src/github.com/googleapis/googleapis && \
+    cd ${GOPATH}/src/github.com/googleapis/googleapis && \
     mkdir -p /out/usr/include/google/api && \
-    install -D $(find ./third_party/googleapis/google/api -name '*.proto') -t /out/usr/include/google/api && \
-    mkdir -p /out/usr/include/google/rpc && \
-    install -D $(find ./third_party/googleapis/google/rpc -name '*.proto') -t /out/usr/include/google/rpc
+    cp -r ./google/api/*.proto /out/usr/include/google/api/ && \
+    mkdir -p /out/usr/include/google/rpc/context && \
+    cp -r ./google/rpc/*.proto /out/usr/include/google/rpc/ && \
+    cp -r ./google/rpc/context/*.proto /out/usr/include/google/rpc/context/
 
 ARG PROTOC_GEN_DOC_VERSION
 RUN mkdir -p ${GOPATH}/src/github.com/pseudomuto/protoc-gen-doc && \
-    curl -sSL https://api.github.com/repos/pseudomuto/protoc-gen-doc/tarball/v${PROTOC_GEN_DOC_VERSION} | tar xz --strip 1 -C ${GOPATH}/src/github.com/pseudomuto/protoc-gen-doc && \
+    curl -sSL https://api.github.com/repos/pseudomuto/protoc-gen-doc/tarball/${PROTOC_GEN_DOC_VERSION} | tar xz --strip 1 -C ${GOPATH}/src/github.com/pseudomuto/protoc-gen-doc && \
     cd ${GOPATH}/src/github.com/pseudomuto/protoc-gen-doc && \
     CGO_ENABLED=0 go build -ldflags '-w -s' -o /protoc-gen-doc-out/protoc-gen-doc ./cmd/protoc-gen-doc && \
     install -Ds /protoc-gen-doc-out/protoc-gen-doc /out/usr/bin/protoc-gen-doc
