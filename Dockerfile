@@ -24,9 +24,9 @@ RUN curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v${P
     rm /out/usr/readme.txt
 
 ARG PROTOC_GEN_GO_VERSION
-RUN mkdir -p ${GOPATH}/src/github.com/protocolbuffers/protobuf-go && \
-    curl -sSL https://api.github.com/repos/protocolbuffers/protobuf-go/tarball/${PROTOC_GEN_GO_VERSION} | tar xz --strip 1 -C ${GOPATH}/src/github.com/protocolbuffers/protobuf-go &&\
-    cd ${GOPATH}/src/github.com/protocolbuffers/protobuf-go && \
+RUN mkdir -p ${GOPATH}/src/google.golang.org/protobuf && \
+    curl -sSL https://api.github.com/repos/protocolbuffers/protobuf-go/tarball/${PROTOC_GEN_GO_VERSION} | tar xz --strip 1 -C ${GOPATH}/src/google.golang.org/protobuf &&\
+    cd ${GOPATH}/src/google.golang.org/protobuf && \
     CGO_ENABLED=0 go build -ldflags '-w -s' -o /golang-protobuf-out/protoc-gen-go ./cmd/protoc-gen-go && \
     install -Ds /golang-protobuf-out/protoc-gen-go /out/usr/bin/protoc-gen-go
 
