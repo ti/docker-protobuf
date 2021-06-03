@@ -102,7 +102,14 @@ service YourService { \n\
      }; \n\
     } \n\
 }' >> /build/proto/main.proto
-RUN echo $'find ./ -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
+
+
+RUN echo $'find ./third_party -type f -name '*.proto' -exec protoc -I ./third_party --proto_path=/usr/include \
+ --go_out /build/go/third_party --go_opt paths=source_relative \
+ --go-grpc_out /build/go/third_party --go-grpc_opt paths=source_relative \
+ {} \;' >> /build/build_third_party.sh
+
+RUN echo $'find ./ -not -path './third_party/*' -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
  --go_out /build/go --go_opt paths=source_relative \
  --go-grpc_out /build/go --go-grpc_opt paths=source_relative \
  --grpc-gateway_out /build/go --grpc-gateway_opt logtostderr=true \
@@ -110,9 +117,10 @@ RUN echo $'find ./ -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/i
  --validate_out=lang=go,paths=source_relative:/build/go \
  --openapiv2_out /build/openapi --openapiv2_opt \
 logtostderr=true {} \;' >> /build/build.sh
-RUN chmod +x /build/build.sh
-RUN chown -R nobody.nobody /build
-RUN chown -R nobody.nobody /usr/include
+
+RUN chmod +x /build/build.sh /build/build_third_party.sh
+RUN chown -R nobody.nobody /build /usr/include
+
 WORKDIR /build/proto
 # the example to build the proto to test folder
 # docker run --rm -v $(shell pwd)/pkg/go:/build/go -v $(shell pwd)/pkg/openapi:/build/openapi -v $(shell pwd):/build/proto nanxi/protoc:go
