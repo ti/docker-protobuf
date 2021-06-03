@@ -86,6 +86,7 @@ RUN apk add --no-cache /tmp/glibc.apk && \
     rm /etc/apk/keys/sgerrand.rsa.pub /tmp/glibc.apk
 
 RUN mkdir -p /build/proto /build/go /build/openapi
+
 # Exmaple Proto
 RUN echo $'syntax = "proto3"; \n\
 package your.service.v1; \n\
@@ -104,12 +105,14 @@ service YourService { \n\
 }' >> /build/proto/main.proto
 
 
-RUN echo $'find ./third_party -type f -name '*.proto' -exec protoc -I ./third_party --proto_path=/usr/include \
+RUN echo $'if ! [ -d ./third_party ]; then return 1; fi && find ./third_party -type f -name '*.proto' -exec protoc -I ./third_party --proto_path=/usr/include \
  --go_out /build/go/third_party --go_opt paths=source_relative \
  --go-grpc_out /build/go/third_party --go-grpc_opt paths=source_relative \
  {} \;' >> /build/build_third_party.sh
 
-RUN echo $'find ./ -not -path './third_party/*' -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
+RUN rm -rf /build/build.sh
+
+RUN echo $'find ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
  --go_out /build/go --go_opt paths=source_relative \
  --go-grpc_out /build/go --go-grpc_opt paths=source_relative \
  --grpc-gateway_out /build/go --grpc-gateway_opt logtostderr=true \
@@ -124,4 +127,5 @@ RUN chown -R nobody.nobody /build /usr/include
 WORKDIR /build/proto
 # the example to build the proto to test folder
 # docker run --rm -v $(shell pwd)/pkg/go:/build/go -v $(shell pwd)/pkg/openapi:/build/openapi -v $(shell pwd):/build/proto nanxi/protoc:go
-CMD ["/bin/sh", "-c", "/build/build.sh"]
+CMD ["/bin/sh", "-c", "/build/build.sh && /build/build_third_party.sh"]
+
