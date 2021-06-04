@@ -110,8 +110,6 @@ RUN echo $'if ! [ -d ./third_party ]; then return 1; fi && find ./third_party -t
  --go-grpc_out /build/go/third_party --go-grpc_opt paths=source_relative \
  {} \;' >> /build/build_third_party.sh
 
-RUN rm -rf /build/build.sh
-
 RUN echo $'find ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . -I ./third_party --proto_path=/usr/include \
  --go_out /build/go --go_opt paths=source_relative \
  --go-grpc_out /build/go --go-grpc_opt paths=source_relative \
