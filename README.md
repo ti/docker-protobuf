@@ -8,11 +8,20 @@ include all golang tools
 - https://github.com/envoyproxy/protoc-gen-validate
 - https://github.com/grpc-ecosystem/grpc-gateway
 - https://github.com/pseudomuto/protoc-gen-doc
-- https://github.com/mwitkow/go-proto-validators
+- https://github.com/dart-lang/protobuf
 
 ## Supported languages
-- C
+- C++ (include C++ runtime and protoc)
+- Java
+- Python
+- Objective-C
+- C#
+- JavaScript
+- Ruby
 - Go
+- PHP
+- Dart
+- Swift
 
 ## Usage
 ```
