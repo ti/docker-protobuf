@@ -45,15 +45,10 @@ RUN mkdir -p /grpc-web && \
 RUN rm -rf /out && mkdir -p /out/usr/bin/ && \
     mv /tmp/usr/bin/protoc-gen-grpc-web /out/usr/bin/
 
-RUN mkdir -p /out/tmp/ /out/etc/apk/keys/
-RUN curl -sSL https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub -o /out/etc/apk/keys/sgerrand.rsa.pub  && \
-    curl -sSL https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VERSION}/glibc-${GLIBC_VERSION}.apk -o /out/tmp/glibc.apk
-
 ARG PROTOBUF_VERSION
 RUN curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protoc-${PROTOBUF_VERSION}-linux-x86_64.zip -o /tmp/protobuf.zip  && \
     unzip -o /tmp/protobuf.zip -d /out/usr/ && \
     rm /out/usr/readme.txt
-
 
 ARG PROTOC_GEN_GO_VERSION
 RUN mkdir -p ${GOPATH}/src/google.golang.org/protobuf && \
@@ -111,6 +106,12 @@ RUN upx --lzma $(find /out/usr/bin/ \
     )
 RUN find /out -name "*.a" -delete -or -name "*.la" -delete
 
+ARG GLIBC_VERSION
+RUN mkdir -p /out/tmp/ /out/etc/apk/keys/
+RUN curl -sSL https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub -o /out/etc/apk/keys/sgerrand.rsa.pub  && \
+    curl -sSL https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VERSION}/glibc-${GLIBC_VERSION}.apk -o /out/tmp/glibc.apk
+
+ARG DART_VERSION
 FROM google/dart:${DART_VERSION} as dart_builder
 RUN apt-get update && apt-get install -y musl-tools curl
 
@@ -167,7 +168,6 @@ service YourService { \n\
     } \n\
 }' >> /build/proto/main.proto
 
-
 RUN echo $'if ! [ -d ./third_party ]; then return 1; fi && find ./third_party -type f -name '*.proto' -exec protoc -I ./third_party --proto_path=/usr/include \
  --go_out /build/go/third_party --go_opt paths=source_relative \
  --go-grpc_out /build/go/third_party --go-grpc_opt paths=source_relative \
@@ -189,4 +189,3 @@ WORKDIR /build/proto
 # the example to build the proto to test folder
 # docker run --rm -v $(shell pwd)/pkg/go:/build/go -v $(shell pwd)/pkg/openapi:/build/openapi -v $(shell pwd):/build/proto nanxi/protoc:go
 CMD ["/bin/sh", "-c", "/build/build.sh && /build/build_third_party.sh"]
-
