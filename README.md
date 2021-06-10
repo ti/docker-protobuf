@@ -22,6 +22,7 @@ include all golang tools
 - PHP
 - Dart
 - Swift
+- Web
 
 ## Usage
 ```
