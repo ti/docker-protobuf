@@ -16,37 +16,10 @@ ARG GRPC_WEB_VERSION=master
 ARG GRPC_VERSION=v1.38.0
 
 FROM golang:${GO_VERSION}-alpine${ALPINE_VERSION} as builder
-RUN apk add --no-cache build-base curl automake autoconf libtool git zlib-dev linux-headers cmake ninja upx
-
-ARG GRPC_VERSION
-RUN git clone --recursive --depth=1 -b ${GRPC_VERSION} https://github.com/grpc/grpc.git /grpc && \
-    ln -s /grpc/third_party/protobuf /protobuf && \
-    mkdir -p /grpc/cmake/build && \
-    cd /grpc/cmake/build && \
-    cmake \
-        -GNinja \
-        -DBUILD_SHARED_LIBS=ON \
-        -DCMAKE_INSTALL_PREFIX=/usr \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DgRPC_INSTALL=ON \
-        -DgRPC_BUILD_TESTS=OFF \
-        ../.. && \
-    cmake --build . --target plugins && \
-    cmake --build . --target install && \
-    DESTDIR=/out cmake --build . --target install
-
-RUN mkdir -p /grpc-web && \
-    curl -sSL https://api.github.com/repos/grpc/grpc-web/tarball/${GRPC_WEB_VERSION} | tar xz --strip 1 -C /grpc-web && \
-    cd /grpc-web && \
-    make install-plugin && \
-    install -Ds /usr/local/bin/protoc-gen-grpc-web /tmp/usr/bin/protoc-gen-grpc-web
-
-# clean all build
-RUN rm -rf /out && mkdir -p /out/usr/bin/ && \
-    mv /tmp/usr/bin/protoc-gen-grpc-web /out/usr/bin/
+RUN apk add --no-cache build-base curl git upx
 
 ARG PROTOBUF_VERSION
-RUN curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protoc-${PROTOBUF_VERSION}-linux-x86_64.zip -o /tmp/protobuf.zip  && \
+RUN mkdir -p /out/usr/ && curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protoc-${PROTOBUF_VERSION}-linux-x86_64.zip -o /tmp/protobuf.zip  && \
     unzip -o /tmp/protobuf.zip -d /out/usr/ && \
     rm /out/usr/readme.txt
 
@@ -141,6 +114,33 @@ RUN mkdir -p /grpc-swift && \
 RUN mkdir /out
 RUN mv /protoc-gen-swift /out/protoc-gen-swift
 
+FROM alpine:${ALPINE_VERSION} as web_builder
+RUN apk add --no-cache build-base curl automake autoconf libtool git zlib-dev linux-headers cmake ninja upx
+
+ARG GRPC_VERSION
+RUN git clone --recursive --depth=1 -b ${GRPC_VERSION} https://github.com/grpc/grpc.git /grpc && \
+    ln -s /grpc/third_party/protobuf /protobuf && \
+    mkdir -p /grpc/cmake/build && \
+    cd /grpc/cmake/build && \
+    cmake \
+        -GNinja \
+        -DBUILD_SHARED_LIBS=ON \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DgRPC_INSTALL=ON \
+        -DgRPC_BUILD_TESTS=OFF \
+        ../.. && \
+    cmake --build . --target plugins && \
+    cmake --build . --target install && \
+    DESTDIR=/out cmake --build . --target install
+
+ARG GRPC_WEB_VERSION
+RUN mkdir -p /grpc-web && \
+    curl -sSL https://api.github.com/repos/grpc/grpc-web/tarball/${GRPC_WEB_VERSION} | tar xz --strip 1 -C /grpc-web && \
+    cd /grpc-web && export CXXFLAGS="-static" &&\
+    make install-plugin && \
+    install -Ds /usr/local/bin/protoc-gen-grpc-web /out/usr/bin/protoc-gen-grpc-web
+
 FROM alpine:${ALPINE_VERSION}
 COPY --from=builder /out/ /
 COPY --from=dart_builder /out/ /
@@ -149,7 +149,7 @@ COPY --from=swift_builder /out/ /
 RUN apk add --no-cache /tmp/glibc.apk && \
     rm /etc/apk/keys/sgerrand.rsa.pub /tmp/glibc.apk
 
-RUN mkdir -p /build/proto /build/go /build/openapi
+RUN mkdir -p /build/proto/third_party /build/go/third_party /build/openapi
 
 # Exmaple Proto
 RUN echo $'syntax = "proto3"; \n\
@@ -186,6 +186,8 @@ RUN chmod +x /build/build.sh /build/build_third_party.sh
 RUN chown -R nobody.nobody /build /usr/include
 
 WORKDIR /build/proto
+
 # the example to build the proto to test folder
 # docker run --rm -v $(shell pwd)/pkg/go:/build/go -v $(shell pwd)/pkg/openapi:/build/openapi -v $(shell pwd):/build/proto nanxi/protoc:go
 CMD ["/bin/sh", "-c", "/build/build.sh && /build/build_third_party.sh"]
+
