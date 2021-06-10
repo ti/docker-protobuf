@@ -12,7 +12,7 @@ A lightweight protoc Docker image. It started out as https://github.com/TheThing
 - https://github.com/grpc/grpc-web
 
 ## Supported languages
-- C++ (include C++ runtime and protoc)
+- C++
 - Java
 - Python
 - Objective-C
