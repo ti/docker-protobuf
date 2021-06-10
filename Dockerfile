@@ -12,20 +12,48 @@ ARG DART_VERSION=2
 ARG DART_PROTOBUF_VERSION=master
 ARG SWIFT_VERSION=5.4.1
 ARG GRPC_SWIFT_VERSION=1.1.0
+ARG GRPC_WEB_VERSION=master
+ARG GRPC_VERSION=v1.38.0
 
 FROM golang:${GO_VERSION}-alpine${ALPINE_VERSION} as builder
-RUN apk add --no-cache build-base curl git upx
+RUN apk add --no-cache build-base curl automake autoconf libtool git zlib-dev linux-headers cmake ninja upx
 
-ARG GLIBC_VERSION
+ARG GRPC_VERSION
+RUN git clone --recursive --depth=1 -b ${GRPC_VERSION} https://github.com/grpc/grpc.git /grpc && \
+    ln -s /grpc/third_party/protobuf /protobuf && \
+    mkdir -p /grpc/cmake/build && \
+    cd /grpc/cmake/build && \
+    cmake \
+        -GNinja \
+        -DBUILD_SHARED_LIBS=ON \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DgRPC_INSTALL=ON \
+        -DgRPC_BUILD_TESTS=OFF \
+        ../.. && \
+    cmake --build . --target plugins && \
+    cmake --build . --target install && \
+    DESTDIR=/out cmake --build . --target install
+
+RUN mkdir -p /grpc-web && \
+    curl -sSL https://api.github.com/repos/grpc/grpc-web/tarball/${GRPC_WEB_VERSION} | tar xz --strip 1 -C /grpc-web && \
+    cd /grpc-web && \
+    make install-plugin && \
+    install -Ds /usr/local/bin/protoc-gen-grpc-web /tmp/usr/bin/protoc-gen-grpc-web
+
+# clean all build
+RUN rm -rf /out && mkdir -p /out/usr/bin/ && \
+    mv /tmp/usr/bin/protoc-gen-grpc-web /out/usr/bin/
+
 RUN mkdir -p /out/tmp/ /out/etc/apk/keys/
 RUN curl -sSL https://alpine-pkgs.sgerrand.com/sgerrand.rsa.pub -o /out/etc/apk/keys/sgerrand.rsa.pub  && \
     curl -sSL https://github.com/sgerrand/alpine-pkg-glibc/releases/download/${GLIBC_VERSION}/glibc-${GLIBC_VERSION}.apk -o /out/tmp/glibc.apk
 
 ARG PROTOBUF_VERSION
-RUN mkdir -p /out/usr/
 RUN curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protoc-${PROTOBUF_VERSION}-linux-x86_64.zip -o /tmp/protobuf.zip  && \
-    unzip /tmp/protobuf.zip -d /out/usr/ && \
+    unzip -o /tmp/protobuf.zip -d /out/usr/ && \
     rm /out/usr/readme.txt
+
 
 ARG PROTOC_GEN_GO_VERSION
 RUN mkdir -p ${GOPATH}/src/google.golang.org/protobuf && \
