@@ -1,6 +1,6 @@
 # Protocol Buffers + Docker
 
-include all golang tools
+A lightweight protoc Docker image. It started out as https://github.com/TheThingsIndustries/docker-protobuf fork, but grew into a stand-alone and simple Dockerfile.
 
 ## What's included:
 - https://github.com/protocolbuffers/protobuf
