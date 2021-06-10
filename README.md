@@ -9,6 +9,7 @@ include all golang tools
 - https://github.com/grpc-ecosystem/grpc-gateway
 - https://github.com/pseudomuto/protoc-gen-doc
 - https://github.com/dart-lang/protobuf
+- https://github.com/grpc/grpc-web
 
 ## Supported languages
 - C++ (include C++ runtime and protoc)
