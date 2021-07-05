@@ -159,6 +159,11 @@ RUN echo $'find ./ -not -path "./third_party/*" -type f -name '*.proto' -exec pr
  --openapiv2_out /build/openapi --openapiv2_opt \
 logtostderr=true {} \;' >> /build/build.sh
 
+RUN echo $'find ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
+ --js_out=import_style=commonjs:/build/web \
+ --grpc-web_out=import_style=commonjs,mode=grpcwebtext:/build/web \
+ {} \;' >> /build/build_web.sh
+ 
 RUN chmod +x /build/build.sh /build/build_third_party.sh
 RUN chown -R nobody.nobody /build /usr/include
 
