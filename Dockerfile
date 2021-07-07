@@ -145,7 +145,7 @@ service YourService { \n\
     } \n\
 }' >> /build/proto/main.proto
 
-RUN echo $'if ! [ -d ./third_party ]; then return 1; fi && find ./third_party -type f -name '*.proto' -exec protoc -I ./third_party --proto_path=/usr/include \
+RUN echo $'if ! [ -d ./third_party ]; then return 0; fi && find ./third_party -type f -name '*.proto' -exec protoc -I ./third_party --proto_path=/usr/include \
  --go_out /build/go/third_party --go_opt paths=source_relative \
  --go-grpc_out /build/go/third_party --go-grpc_opt paths=source_relative \
  {} \;' >> /build/build_third_party.sh
@@ -164,7 +164,7 @@ RUN echo $'find ./ -not -path "./third_party/*" -type f -name '*.proto' -exec pr
  --grpc-web_out=import_style=commonjs,mode=grpcwebtext:/build/web \
  {} \;' >> /build/build_web.sh
  
-RUN chmod +x /build/build.sh /build/build_third_party.sh
+RUN chmod +x /build/build.sh /build/build_third_party.sh /build/build_web.sh
 RUN chown -R nobody.nobody /build /usr/include
 
 WORKDIR /build/proto
