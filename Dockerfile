@@ -156,7 +156,7 @@ RUN echo $'find ./ -not -path "./third_party/*" -type f -name '*.proto' -exec pr
  --grpc-gateway_out /build/go --grpc-gateway_opt logtostderr=true \
  --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=true \
  --validate_out=lang=go,paths=source_relative:/build/go \
- --openapiv2_out /build/openapi --openapiv2_opt \
+ --openapiv2_out /build/openapi --openapiv2_opt json_names_for_fields=false --openapiv2_opt \
 logtostderr=true {} \;' >> /build/build.sh
 
 RUN echo $'find ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
