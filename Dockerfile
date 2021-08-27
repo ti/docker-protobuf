@@ -11,11 +11,47 @@ ARG GOOGLEAPIS_VERSION=master
 ARG DART_VERSION=2
 ARG DART_PROTOBUF_VERSION=master
 ARG SWIFT_VERSION=5.4.1
-ARG GRPC_SWIFT_VERSION=1.2.0
+ARG GRPC_SWIFT_VERSION=1.3.0
 ARG GRPC_WEB_VERSION=1.2.1
+ARG GRPC_VERSION=v1.39.1
+ARG GRPC_JAVA_VERSION=v1.40.0
+
+FROM alpine:${ALPINE_VERSION} as java_builder
+RUN apk add --no-cache build-base curl automake autoconf libtool git zlib-dev linux-headers cmake ninja
+
+RUN mkdir -p /out
+
+ARG GRPC_VERSION
+RUN git clone --recursive --depth=1 -b ${GRPC_VERSION} https://github.com/grpc/grpc.git /grpc && \
+    ln -s /grpc/third_party/protobuf /protobuf && \
+    mkdir -p /grpc/cmake/build && \
+    cd /grpc/cmake/build && \
+    cmake \
+        -GNinja \
+        -DBUILD_SHARED_LIBS=ON \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DgRPC_INSTALL=ON \
+        -DgRPC_BUILD_TESTS=OFF \
+        ../.. && \
+    cmake --build . --target plugins && \
+    cmake --build . --target install && \
+    DESTDIR=/out cmake --build . --target install
+
+ARG GRPC_JAVA_VERSION
+RUN mkdir -p /grpc-java && \
+    curl -sSL https://api.github.com/repos/grpc/grpc-java/tarball/${GRPC_JAVA_VERSION} | tar xz --strip 1 -C /grpc-java && \
+    cd /grpc-java && \
+    g++ \
+        -I. -I/usr/include \
+        compiler/src/java_plugin/cpp/*.cpp \
+        -L/usr/lib64 \
+        -lprotoc -lprotobuf -lpthread --std=c++0x -s \
+        -o protoc-gen-grpc-java && \
+    install -Ds protoc-gen-grpc-java /out/usr/bin/protoc-gen-grpc-java
 
 FROM golang:${GO_VERSION}-alpine${ALPINE_VERSION} as builder
-RUN apk add --no-cache build-base curl git upx
+RUN apk add --no-cache build-base curl automake autoconf libtool git zlib-dev linux-headers cmake ninja upx
 
 ARG PROTOBUF_VERSION
 RUN mkdir -p /out/usr/ && curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protoc-${PROTOBUF_VERSION}-linux-x86_64.zip -o /tmp/protobuf.zip  && \
@@ -115,10 +151,11 @@ RUN mkdir -p /grpc-swift && \
     for p in protoc-gen-swift protoc-gen-grpc-swift; do \
         patchelf --set-interpreter /protoc-gen-swift/ld-linux-x86-64.so.2 /protoc-gen-swift/${p}; \
     done
-RUN mkdir /out
-RUN mv /protoc-gen-swift /out/protoc-gen-swift
+RUN mkdir -p  /out/usr/bin/
+RUN mv /protoc-gen-swift /out/usr/bin/protoc-gen-swift
 
 FROM alpine:${ALPINE_VERSION}
+COPY --from=java_builder /out/ /
 COPY --from=builder /out/ /
 COPY --from=dart_builder /out/ /
 COPY --from=swift_builder /out/ /
@@ -126,7 +163,9 @@ COPY --from=swift_builder /out/ /
 RUN apk add --no-cache /tmp/glibc.apk && \
     rm /etc/apk/keys/sgerrand.rsa.pub /tmp/glibc.apk
 
-RUN mkdir -p /build/proto/third_party /build/go/third_party /build/openapi /build/js /build/web
+RUN apk add --no-cache libstdc++
+
+RUN mkdir -p /build/proto/third_party /build/go/third_party /build/openapi /build/js /build/web /build/java
 
 # Exmaple Proto
 RUN echo $'syntax = "proto3"; \n\
@@ -153,6 +192,7 @@ RUN echo $'if ! [ -d ./third_party ]; then return 0; fi && find ./third_party -t
 RUN echo $'find ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
  --go_out /build/go --go_opt paths=source_relative \
  --go-grpc_out /build/go --go-grpc_opt paths=source_relative \
+ --java_out=/build/java --grpc-java_out=/build/java \
  --grpc-gateway_out /build/go --grpc-gateway_opt logtostderr=true \
  --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=true \
  --validate_out=lang=go,paths=source_relative:/build/go \
@@ -163,7 +203,7 @@ RUN echo $'find ./ -not -path "./third_party/*" -type f -name '*.proto' -exec pr
  --js_out=import_style=commonjs:/build/web \
  --grpc-web_out=import_style=commonjs,mode=grpcwebtext:/build/web \
  {} \;' >> /build/build_web.sh
- 
+
 RUN chmod +x /build/build.sh /build/build_third_party.sh /build/build_web.sh
 RUN chown -R nobody.nobody /build /usr/include
 
@@ -172,4 +212,3 @@ WORKDIR /build/proto
 # the example to build the proto to test folder
 # docker run --rm -v $(shell pwd)/pkg/go:/build/go -v $(shell pwd)/pkg/openapi:/build/openapi -v $(shell pwd):/build/proto nanxi/protoc:go
 CMD ["/bin/sh", "-c", "/build/build.sh && /build/build_third_party.sh"]
-
