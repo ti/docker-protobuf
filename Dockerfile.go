@@ -79,7 +79,7 @@ RUN if [[ $(arch) == *"x86_64"* ]] ;then \
     apk add --no-cache /tmp/glibc.apk && \
     rm /etc/apk/keys/sgerrand.rsa.pub /tmp/glibc.apk ; fi
 
-RUN mkdir -p /build/proto/third_party /build/go/third_party /build/openapi /build/java
+RUN mkdir -p /build/proto/third_party /build/go/third_party /build/openapi /build/java /build/docs
 
 # Exmaple Proto
 RUN echo $'syntax = "proto3"; \n\
@@ -113,7 +113,13 @@ RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.prot
  --java_out=/build/java \
  {} \;' >> /build/build.sh
 
-RUN chmod +x /build/build.sh /build/build_third_party.sh
+RUN echo $'#!/bin/sh\nfor f in `find ./ -not -path "./third_party/*" -type f -name '*.proto' -print`;do \
+    filename=${f##*/} && dir0=${f%/*} && dir=${dir0##*./} && mkdir -p /build/docs/${dir} && \
+    protoc -I . --proto_path=/usr/include \
+    --doc_out=/build/docs/${dir} --doc_opt=markdown,${filename%.proto}.md ${f};\
+     done;' >> /build/build_docs.sh
+
+RUN chmod +x /build/build.sh /build/build_third_party.sh /build/build_docs.sh
 RUN chown -R nobody.nobody /build /usr/include
 
 WORKDIR /build/proto
