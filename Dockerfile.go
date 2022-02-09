@@ -1,4 +1,4 @@
-# a simple protoc tool that Compatible with both arm and x64
+# a simple protoc tool that Compatible with both arm and x86
 ARG ALPINE_VERSION=3.15
 ARG GO_VERSION=1.17
 ARG PROTOBUF_VERSION=3.19.4
