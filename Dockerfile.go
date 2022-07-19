@@ -1,4 +1,5 @@
 # a simple protoc tool that Compatible with both arm and x86
+# docker buildx build --push --platform linux/arm64,linux/amd64 --tag nanxi/protoc:go .
 ARG ALPINE_VERSION=3.16
 ARG GO_VERSION=1.18
 ARG PROTOBUF_VERSION=3.20.1
