@@ -1,5 +1,5 @@
 # a simple protoc tool that Compatible with both arm and x86
-# docker buildx build --push --platform linux/arm64,linux/amd64 --tag nanxi/protoc:go .
+# docker buildx build --push --platform linux/arm64,linux/amd64 --tag nanxi/protoc .
 ARG ALPINE_VERSION=3.16
 ARG GO_VERSION=1.19
 ARG PROTOBUF_VERSION=21.12
@@ -65,7 +65,7 @@ RUN mkdir -p ${GOPATH}/src/github.com/googleapis/googleapis && \
 ARG ALPINE_VERSION
 FROM alpine:${ALPINE_VERSION}
 COPY --from=builder /out/ /
-RUN apk add --no-cache protoc grpc
+RUN apk add --no-cache protoc grpc grpc-java
 
 RUN ln -s /usr/bin/grpc_cpp_plugin /usr/bin/protoc-gen-grpc-cpp
 RUN ln -s /usr/bin/grpc_csharp_plugin /usr/bin/protoc-gen-grpc-csharp
@@ -92,20 +92,22 @@ service YourService { \n\
      }; \n\
     } \n\
 }' >> /build/proto/main.proto
+
 RUN echo $'#!/bin/sh\nif ! [ -d ./third_party ]; then return 0; fi && find ./third_party -type f -name '*.proto' -exec protoc -I ./third_party --proto_path=/usr/include \
- --go_out /build/go/third_party --go_opt paths=source_relative \
- --go-grpc_out /build/go/third_party --go-grpc_opt paths=source_relative \
- {} \;' >> /build/build_third_party.sh
-RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
- --go_out /build/go --go_opt paths=source_relative \
- --go-grpc_out /build/go --go-grpc_opt paths=source_relative \
- --grpc-gateway_out /build/go --grpc-gateway_opt logtostderr=true \
- --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=true \
- --validate_out=lang=go,paths=source_relative:/build/go \
+ --go_out /build/go --go_opt paths=source_relative --go-grpc_out /build/go --go-grpc_opt paths=source_relative --validate_out=lang=go,paths=source_relative:/build/go \
  --openapiv2_out /build/openapi --openapiv2_opt json_names_for_fields=false --openapiv2_opt logtostderr=true \
- --python_out=/build/python \
- --java_out=/build/java \
+ --python_out=/build/python --python-grpc_out=/build/python --plugin=protoc-gen-python-grpc=/usr/bin/grpc_python_plugin \
+ --java_out=/build/java --java-grpc_out=/build/java --plugin=protoc-gen-java-grpc=/usr/bin/protoc-gen-grpc-java \
+ {} \;' >> /build/build_third_party.sh
+
+RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
+ --go_out /build/go --go_opt paths=source_relative --go-grpc_out /build/go --go-grpc_opt paths=source_relative --validate_out=lang=go,paths=source_relative:/build/go \
+ --openapiv2_out /build/openapi --openapiv2_opt json_names_for_fields=false --openapiv2_opt logtostderr=true \
+ --python_out=/build/python --python-grpc_out=/build/python --plugin=protoc-gen-python-grpc=/usr/bin/grpc_python_plugin \
+ --java_out=/build/java --java-grpc_out=/build/java --plugin=protoc-gen-java-grpc=/usr/bin/protoc-gen-grpc-java \
+ --grpc-gateway_out /build/go --grpc-gateway_opt logtostderr=true --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=true \
  {} \;' >> /build/build.sh
+
 RUN echo $'#!/bin/sh\nfor f in `find ./ -not -path "./third_party/*" -type f -name '*.proto' -print`;do \
     filename=${f##*/} && dir0=${f%/*} && dir=${dir0##*./} && mkdir -p /build/docs/${dir} && \
     protoc -I . --proto_path=/usr/include \
