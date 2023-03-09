@@ -2,6 +2,7 @@
 # docker buildx build --push --platform linux/arm64,linux/amd64 --tag nanxi/protoc .
 ARG ALPINE_VERSION=3.17
 ARG GO_VERSION=1.20
+ARG PROTOBUF_VERSION=v22.1
 ARG PROTOC_GEN_GO_VERSION=v1.29.0
 ARG PROTOC_GEN_GO_GRPC_VERSION=v1.53.0
 ARG GRPC_GATEWAY_VERSION=v2.15.2
