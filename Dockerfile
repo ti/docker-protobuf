@@ -52,7 +52,7 @@ RUN mkdir -p ${GOPATH}/src/github.com/protocolbuffers/protobuf &&  \
     curl -sSL https://github.com/protocolbuffers/protobuf/releases/download/v${PROTOBUF_VERSION}/protoc-${PROTOBUF_VERSION}-linux-${ARCH}.zip -o /tmp/protobuf.zip  && \
     unzip -o /tmp/protobuf.zip -d  ${GOPATH}/src/github.com/protocolbuffers/protobuf && \
     cd ${GOPATH}/src/github.com/protocolbuffers/protobuf && \
-    cp -r ./include /out/usr/
+    cp -r ./include /out/usr/ && cp ./bin/protoc /out/usr/bin/protoc
 
 RUN mkdir -p ${GOPATH}/src/github.com/googleapis/googleapis && \
     curl -sSL https://github.com/googleapis/googleapis/archive/refs/heads/master.tar.gz | tar xz --strip 1 -C ${GOPATH}/src/github.com/googleapis/googleapis && \
@@ -120,4 +120,3 @@ WORKDIR /build/proto
 # the example to build the proto to test folder
 # docker run --rm -v $(shell pwd)/pkg/go:/build/go -v $(shell pwd)/pkg/openapi:/build/openapi -v $(shell pwd):/build/proto nanxi/protoc:go
 CMD ["/bin/sh", "-c", "/build/build.sh && /build/build_third_party.sh"]
-
