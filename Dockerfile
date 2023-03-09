@@ -2,7 +2,7 @@
 # docker buildx build --push --platform linux/arm64,linux/amd64 --tag nanxi/protoc .
 ARG ALPINE_VERSION=3.17
 ARG GO_VERSION=1.20
-ARG PROTOBUF_VERSION=v22.1
+ARG PROTOBUF_VERSION=22.1
 ARG PROTOC_GEN_GO_VERSION=v1.29.0
 ARG PROTOC_GEN_GO_GRPC_VERSION=v1.53.0
 ARG GRPC_GATEWAY_VERSION=v2.15.2
@@ -62,6 +62,7 @@ RUN mkdir -p ${GOPATH}/src/github.com/googleapis/googleapis && \
     mkdir -p /out/usr/include/google/rpc/context && \
     cp -r ./google/rpc/*.proto /out/usr/include/google/rpc/ && \
     cp -r ./google/rpc/context/*.proto /out/usr/include/google/rpc/context/
+
 ARG ALPINE_VERSION
 FROM alpine:${ALPINE_VERSION}
 COPY --from=builder /out/ /
