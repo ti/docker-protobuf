@@ -65,8 +65,8 @@ RUN mkdir -p ${GOPATH}/src/github.com/googleapis/googleapis && \
 
 ARG ALPINE_VERSION
 FROM alpine:${ALPINE_VERSION}
+RUN apk add --no-cache grpc grpc-plugins grpc-java --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community
 COPY --from=builder /out/ /
-RUN apk add --no-cache protoc grpc grpc-java
 
 RUN ln -s /usr/bin/grpc_cpp_plugin /usr/bin/protoc-gen-grpc-cpp
 RUN ln -s /usr/bin/grpc_csharp_plugin /usr/bin/protoc-gen-grpc-csharp
@@ -120,3 +120,4 @@ WORKDIR /build/proto
 # the example to build the proto to test folder
 # docker run --rm -v $(shell pwd)/pkg/go:/build/go -v $(shell pwd)/pkg/openapi:/build/openapi -v $(shell pwd):/build/proto nanxi/protoc:go
 CMD ["/bin/sh", "-c", "/build/build.sh && /build/build_third_party.sh"]
+
