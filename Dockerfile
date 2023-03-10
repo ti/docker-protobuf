@@ -64,9 +64,14 @@ RUN mkdir -p ${GOPATH}/src/github.com/googleapis/googleapis && \
     cp -r ./google/rpc/context/*.proto /out/usr/include/google/rpc/context/
 
 ARG ALPINE_VERSION
+FROM alpine:${ALPINE_VERSION} as grpc_java
+RUN apk add --no-cache grpc-java --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community
+
+ARG ALPINE_VERSION
 FROM alpine:${ALPINE_VERSION}
-RUN apk add --no-cache grpc grpc-plugins grpc-java --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community
+RUN apk add --no-cache grpc-plugins --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community
 COPY --from=builder /out/ /
+COPY --from=grpc_java /usr/bin/protoc-gen-grpc-java /usr/bin/protoc-gen-grpc-java
 
 RUN ln -s /usr/bin/grpc_cpp_plugin /usr/bin/protoc-gen-grpc-cpp
 RUN ln -s /usr/bin/grpc_csharp_plugin /usr/bin/protoc-gen-grpc-csharp
