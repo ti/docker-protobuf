@@ -1,13 +1,13 @@
 # a simple protoc tool that Compatible with both arm and x86
 # docker buildx build --push --platform linux/arm64,linux/amd64 --tag nanxi/protoc .
-ARG ALPINE_VERSION=3.17
+ARG ALPINE_VERSION=3.18
 ARG GO_VERSION=1.20
-ARG PROTOBUF_VERSION=22.1
-ARG PROTOC_GEN_GO_VERSION=v1.29.0
-ARG PROTOC_GEN_GO_GRPC_VERSION=v1.53.0
-ARG GRPC_GATEWAY_VERSION=v2.15.2
+ARG PROTOBUF_VERSION=23.3
+ARG PROTOC_GEN_GO_VERSION=v1.31.0
+ARG PROTOC_GEN_GO_GRPC_VERSION=v1.56.1
+ARG GRPC_GATEWAY_VERSION=v2.16.0
 ARG PROTOC_GEN_DOC_VERSION=v1.5.1
-ARG PROTOC_GEN_VALIDATE_VERSION=v0.9.1
+ARG PROTOC_GEN_VALIDATE_VERSION=v1.0.2
 
 FROM golang:${GO_VERSION}-alpine as builder
 RUN apk add --no-cache curl unzip
@@ -65,11 +65,11 @@ RUN mkdir -p ${GOPATH}/src/github.com/googleapis/googleapis && \
 
 ARG ALPINE_VERSION
 FROM alpine:${ALPINE_VERSION} as grpc_java
-RUN apk add --no-cache grpc-java --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community
+RUN apk add --no-cache grpc-java
 
 ARG ALPINE_VERSION
 FROM alpine:${ALPINE_VERSION}
-RUN apk add --no-cache grpc-plugins --repository=https://dl-cdn.alpinelinux.org/alpine/edge/community
+RUN apk add --no-cache grpc-plugins
 COPY --from=builder /out/ /
 COPY --from=grpc_java /usr/bin/protoc-gen-grpc-java /usr/bin/protoc-gen-grpc-java
 
