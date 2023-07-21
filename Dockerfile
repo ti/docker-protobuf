@@ -155,7 +155,7 @@ RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.prot
 
 RUN apk add --no-cache gcompat
 RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
-   --js_out=import_style=es6:/build/web --grpc-web_out=import_style=typescript,mode=grpcweb:/build/web  \
+   --js_out=import_style=es6,binary:/build/web --grpc-web_out=import_style=typescript,mode=grpcweb:/build/web  \
  {} \;' >> /build/build_js_web.sh 
 
 RUN echo $'#!/bin/sh\nif ! [ -d ./third_party ]; then return 0; fi && find ./third_party -type f -name '*.proto' -exec protoc -I ./third_party --proto_path=/usr/include \
