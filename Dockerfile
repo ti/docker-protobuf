@@ -84,7 +84,7 @@ ARG PROTOC_GEN_TS_VERSION
 RUN <<EOF
     apk add --no-cache nodejs npm
     npm install -g protoc-gen-ts pkg
-    pkg --compress Brotli --targets node18-alpine --output /out/usr/bin/protoc-gen-ts /usr/local/lib/node_modules/ts-protoc-gen
+    pkg --compress Brotli --targets node18-alpine --output /out/usr/bin/protoc-gen-ts /usr/local/bin/protoc-gen-ts
 EOF
 
 ARG PROTOC_GEN_JS_VERSION
@@ -150,7 +150,7 @@ RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.prot
  {} \;' >> /build/build.sh 
 
 RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
- --js_out=import_style=es6:/build/web --ts_out=/build/web --grpc-web_out=import_style=typescript,mode=grpcweb:/build/web  \
+ --ts_out=/build/web --grpc-web_out=import_style=typescript,mode=grpcweb:/build/web  \
  {} \;' >> /build/build_web.sh 
 
 RUN echo $'#!/bin/sh\nif ! [ -d ./third_party ]; then return 0; fi && find ./third_party -type f -name '*.proto' -exec protoc -I ./third_party --proto_path=/usr/include \
