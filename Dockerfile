@@ -4,10 +4,13 @@ ARG ALPINE_VERSION=3.18
 ARG GO_VERSION=1.20
 ARG PROTOBUF_VERSION=23.3
 ARG PROTOC_GEN_GO_VERSION=v1.31.0
-ARG PROTOC_GEN_GO_GRPC_VERSION=v1.56.1
+ARG PROTOC_GEN_GO_GRPC_VERSION=v1.56.2
 ARG GRPC_GATEWAY_VERSION=v2.16.0
 ARG PROTOC_GEN_DOC_VERSION=v1.5.1
 ARG PROTOC_GEN_VALIDATE_VERSION=v1.0.2
+ARG GRPC_WEB_VERSION=1.4.2
+ARG PROTOC_GEN_JS_VERSION=3.21.2
+ARG PROTOC_GEN_TS_VERSION=0.8.6
 
 FROM golang:${GO_VERSION}-alpine as builder
 RUN apk add --no-cache curl unzip
@@ -54,6 +57,10 @@ RUN mkdir -p ${GOPATH}/src/github.com/protocolbuffers/protobuf &&  \
     cd ${GOPATH}/src/github.com/protocolbuffers/protobuf && \
     cp -r ./include /out/usr/ && cp ./bin/protoc /out/usr/bin/protoc
 
+ARG GRPC_WEB_VERSION
+RUN curl -sSL https://github.com/grpc/grpc-web/releases/download/${GRPC_WEB_VERSION}/protoc-gen-grpc-web-${GRPC_WEB_VERSION}-linux-$(arch) -o /out/usr/bin/protoc-gen-grpc-web  && \
+    chmod +x /out/usr/bin/protoc-gen-grpc-web
+
 RUN mkdir -p ${GOPATH}/src/github.com/googleapis/googleapis && \
     curl -sSL https://github.com/googleapis/googleapis/archive/refs/heads/master.tar.gz | tar xz --strip 1 -C ${GOPATH}/src/github.com/googleapis/googleapis && \
     cd ${GOPATH}/src/github.com/googleapis/googleapis && \
@@ -63,13 +70,51 @@ RUN mkdir -p ${GOPATH}/src/github.com/googleapis/googleapis && \
     cp -r ./google/rpc/*.proto /out/usr/include/google/rpc/ && \
     cp -r ./google/rpc/context/*.proto /out/usr/include/google/rpc/context/
 
+ARG PROTOC_GEN_JS_VERSION
+RUN mkdir -p ${GOPATH}/src/github.com/protocolbuffers/protobuf-javascript &&  \
+    export ARCH=x86_64 && if [[ $(arch) == *"aarch64"* ]] ;then export ARCH=aarch_64; fi && \
+    curl -sSL https://github.com/protocolbuffers/protobuf-javascript/releases/download/v${PROTOC_GEN_JS_VERSION}/protobuf-javascript-${PROTOC_GEN_JS_VERSION}-linux-${ARCH}.zip -o /tmp/protobuf-javascript.zip  && \
+    unzip -o /tmp/protobuf-javascript.zip -d  ${GOPATH}/src/github.com/protocolbuffers/protobuf-javascript && \
+    cd ${GOPATH}/src/github.com/protocolbuffers/protobuf-javascript && \
+    cp -r ./google  /out/usr/include/ && cp ./bin/protoc-gen-js /out/usr/bin/protoc-gen-js
+
+RUN apk add --no-cache nodejs npm
+
+ARG PROTOC_GEN_TS_VERSION
+RUN <<EOF
+    apk add --no-cache nodejs npm
+    npm install -g protoc-gen-ts pkg
+    mkdir -p /tmp/protoc-gen-ts
+    cd /tmp/protoc-gen-ts
+    echo '{"name": "protoc-gen-ts", "version": "1.0", "bin": "/usr/local/bin/protoc-gen-ts"}' > package.json
+    pkg . --target node18-linux --output /out/usr/bin/protoc-gen-ts
+EOF
+
+ARG PROTOC_GEN_JS_VERSION
+RUN <<EOF
+    # Skip arm64 build due to https://github.com/bazelbuild/bazel/issues/17220
+    # TODO: Remove this conditional once fixed
+    if [ $(arch) == *"aarch64"* ]; then
+      echo "Skipping arm64 build due to error in Bazel toolchain"
+      exit 0
+    fi
+    apk add --no-cache build-base linux-headers
+    apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/ bazel6
+    # Build protoc-gen-js
+    mkdir -p ${GOPATH}/src/github.com/protocolbuffers/protobuf-javascript
+    cd ${GOPATH}/src/github.com/protocolbuffers/protobuf-javascript
+    curl -sSL https://api.github.com/repos/protocolbuffers/protobuf-javascript/tarball/main | tar xz --strip 1 -C  ${GOPATH}/src/github.com/protocolbuffers/protobuf-javascript
+    bazel build plugin_files
+    install -D ./bazel-bin/generator/protoc-gen-js /out/usr/bin/protoc-gen-js
+EOF
+    
 ARG ALPINE_VERSION
 FROM alpine:${ALPINE_VERSION} as grpc_java
 RUN apk add --no-cache grpc-java
 
 ARG ALPINE_VERSION
 FROM alpine:${ALPINE_VERSION}
-RUN apk add --no-cache grpc-plugins
+RUN apk add --no-cache grpc-plugins gcompat
 COPY --from=builder /out/ /
 COPY --from=grpc_java /usr/bin/protoc-gen-grpc-java /usr/bin/protoc-gen-grpc-java
 
@@ -81,7 +126,7 @@ RUN ln -s /usr/bin/grpc_php_plugin /usr/bin/protoc-gen-grpc-php
 RUN ln -s /usr/bin/grpc_python_plugin /usr/bin/protoc-gen-grpc-python
 RUN ln -s /usr/bin/grpc_ruby_plugin /usr/bin/protoc-gen-grpc-ruby
 
-RUN mkdir -p /build/proto/third_party /build/go/third_party /build/openapi /build/java /build/python /build/docs
+RUN mkdir -p /build/proto/third_party /build/go/third_party /build/openapi /build/java /build/python /build/web /build/docs
 # Exmaple Proto
 RUN echo $'syntax = "proto3"; \n\
 package your.service.v1; \n\
@@ -99,9 +144,6 @@ service YourService { \n\
     } \n\
 }' >> /build/proto/main.proto
 
-RUN echo $'#!/bin/sh\nif ! [ -d ./third_party ]; then return 0; fi && find ./third_party -type f -name '*.proto' -exec protoc -I ./third_party --proto_path=/usr/include \
- --go_out /build/go/third_party --go_opt paths=source_relative --go-grpc_out /build/go/third_party --go-grpc_opt paths=source_relative \
- {} \;' >> /build/build_third_party.sh
 
 RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
  --go_out /build/go --go_opt paths=source_relative --go-grpc_out /build/go --go-grpc_opt paths=source_relative --validate_out=lang=go,paths=source_relative:/build/go \
@@ -109,8 +151,16 @@ RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.prot
  --python_out=/build/python --python-grpc_out=/build/python --plugin=protoc-gen-python-grpc=/usr/bin/grpc_python_plugin \
  --java_out=/build/java --java-grpc_out=/build/java --plugin=protoc-gen-java-grpc=/usr/bin/protoc-gen-grpc-java \
  --grpc-gateway_out /build/go --grpc-gateway_opt logtostderr=true --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=true \
- {} \;' >> /build/build.sh
+ {} \;' >> /build/build.sh 
 
+RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
+ --js_out=import_style=es6:/build/web --ts_out=/build/web --grpc-web_out=import_style=typescript,mode=grpcweb:/build/web  \
+ {} \;' >> /build/build_web.sh 
+
+RUN echo $'#!/bin/sh\nif ! [ -d ./third_party ]; then return 0; fi && find ./third_party -type f -name '*.proto' -exec protoc -I ./third_party --proto_path=/usr/include \
+ --go_out /build/go/third_party --go_opt paths=source_relative --go-grpc_out /build/go/third_party --go-grpc_opt paths=source_relative \
+ {} \;' >> /build/build_third_party.sh
+    
 RUN echo $'#!/bin/sh\nfor f in `find ./ -not -path "./third_party/*" -type f -name '*.proto' -print`;do \
     filename=${f##*/} && dir0=${f%/*} && dir=${dir0##*./} && mkdir -p /build/docs/${dir} && \
     protoc -I . --proto_path=/usr/include \
