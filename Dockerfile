@@ -84,28 +84,24 @@ ARG PROTOC_GEN_TS_VERSION
 RUN <<EOF
     apk add --no-cache nodejs npm
     npm install -g protoc-gen-ts pkg
-    mkdir -p /tmp/protoc-gen-ts
-    cd /tmp/protoc-gen-ts
-    echo '{"name": "protoc-gen-ts", "version": "1.0", "bin": "/usr/local/bin/protoc-gen-ts"}' > package.json
-    pkg . --target node18-linux --output /out/usr/bin/protoc-gen-ts
+    pkg --compress Brotli --targets node18-alpine --output /out/usr/bin/protoc-gen-ts /usr/local/lib/node_modules/ts-protoc-gen
 EOF
 
 ARG PROTOC_GEN_JS_VERSION
 RUN <<EOF
     # Skip arm64 build due to https://github.com/bazelbuild/bazel/issues/17220
     # TODO: Remove this conditional once fixed
-    if [ $(arch) == *"aarch64"* ]; then
-      echo "Skipping arm64 build due to error in Bazel toolchain"
-      exit 0
+    if [ $(arch) == *"x86"* ]; then
+        echo "Start build protobuf-javascript in " $(arch)
+        apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/ bazel6
+        apk add --no-cache build-base linux-headers
+        # Build protoc-gen-js
+        mkdir -p ${GOPATH}/src/github.com/protocolbuffers/protobuf-javascript
+        cd ${GOPATH}/src/github.com/protocolbuffers/protobuf-javascript
+        curl -sSL https://api.github.com/repos/protocolbuffers/protobuf-javascript/tarball/main | tar xz --strip 1 -C  ${GOPATH}/src/github.com/protocolbuffers/protobuf-javascript
+        bazel build plugin_files
+        install -D ./bazel-bin/generator/protoc-gen-js /out/usr/bin/protoc-gen-js
     fi
-    apk add --no-cache build-base linux-headers
-    apk add --no-cache --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/ bazel6
-    # Build protoc-gen-js
-    mkdir -p ${GOPATH}/src/github.com/protocolbuffers/protobuf-javascript
-    cd ${GOPATH}/src/github.com/protocolbuffers/protobuf-javascript
-    curl -sSL https://api.github.com/repos/protocolbuffers/protobuf-javascript/tarball/main | tar xz --strip 1 -C  ${GOPATH}/src/github.com/protocolbuffers/protobuf-javascript
-    bazel build plugin_files
-    install -D ./bazel-bin/generator/protoc-gen-js /out/usr/bin/protoc-gen-js
 EOF
     
 ARG ALPINE_VERSION
@@ -114,7 +110,7 @@ RUN apk add --no-cache grpc-java
 
 ARG ALPINE_VERSION
 FROM alpine:${ALPINE_VERSION}
-RUN apk add --no-cache grpc-plugins gcompat
+RUN apk add --no-cache grpc-plugins
 COPY --from=builder /out/ /
 COPY --from=grpc_java /usr/bin/protoc-gen-grpc-java /usr/bin/protoc-gen-grpc-java
 
