@@ -150,7 +150,7 @@ RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.prot
  {} \;' >> /build/build.sh 
 
 RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
- --ts_opt=target=web:/build/web --grpc-web_out=import_style=typescript,mode=grpcweb:/build/web  \
+  --ts_out=/build/web --ts_opt=target=web --grpc-web_out=import_style=typescript,mode=grpcweb:/build/web  \
  {} \;' >> /build/build_web.sh 
 
 RUN echo $'#!/bin/sh\nif ! [ -d ./third_party ]; then return 0; fi && find ./third_party -type f -name '*.proto' -exec protoc -I ./third_party --proto_path=/usr/include \
@@ -163,7 +163,7 @@ RUN echo $'#!/bin/sh\nfor f in `find ./ -not -path "./third_party/*" -type f -na
     --doc_out=/build/docs/${dir} --doc_opt=markdown,${filename%.proto}.md ${f};\
      done;' >> /build/build_docs.sh
 
-RUN chmod +x /build/build.sh /build/build_third_party.sh /build/build_docs.sh
+RUN chmod +x /build/build.sh /build/build_third_party.sh /build/build_docs.sh /build/build_web.sh 
 RUN chown -R nobody.nobody /build /usr/include
 
 WORKDIR /build/proto
