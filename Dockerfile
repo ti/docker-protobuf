@@ -150,7 +150,7 @@ RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.prot
  {} \;' >> /build/build.sh 
 
 RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
- --ts_out=/build/web --grpc-web_out=import_style=typescript,mode=grpcweb:/build/web  \
+ --ts_opt=target=web:/build/web --grpc-web_out=import_style=typescript,mode=grpcweb:/build/web  \
  {} \;' >> /build/build_web.sh 
 
 RUN echo $'#!/bin/sh\nif ! [ -d ./third_party ]; then return 0; fi && find ./third_party -type f -name '*.proto' -exec protoc -I ./third_party --proto_path=/usr/include \
