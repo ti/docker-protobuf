@@ -140,7 +140,6 @@ service YourService { \n\
     } \n\
 }' >> /build/proto/main.proto
 
-
 RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
  --go_out /build/go --go_opt paths=source_relative --go-grpc_out /build/go --go-grpc_opt paths=source_relative --validate_out=lang=go,paths=source_relative:/build/go \
  --openapiv2_out /build/openapi --openapiv2_opt json_names_for_fields=false --openapiv2_opt logtostderr=true \
@@ -150,8 +149,14 @@ RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.prot
  {} \;' >> /build/build.sh 
 
 RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
-  --ts_out=/build/web --ts_opt=target=web --grpc-web_out=import_style=typescript,mode=grpcweb:/build/web  \
- {} \;' >> /build/build_web.sh 
+   --ts_out=/build/web --ts_opt=no_namespace --ts_opt=target=web --grpc-web_out=import_style=typescript,mode=grpcweb:/build/web  \
+ {} \;' >> /build/build_web.sh
+
+
+RUN apk add --no-cache gcompat
+RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
+   --js_out=import_style=es6:/build/web --grpc-web_out=import_style=typescript,mode=grpcweb:/build/web  \
+ {} \;' >> /build/build_js_web.sh 
 
 RUN echo $'#!/bin/sh\nif ! [ -d ./third_party ]; then return 0; fi && find ./third_party -type f -name '*.proto' -exec protoc -I ./third_party --proto_path=/usr/include \
  --go_out /build/go/third_party --go_opt paths=source_relative --go-grpc_out /build/go/third_party --go-grpc_opt paths=source_relative \
