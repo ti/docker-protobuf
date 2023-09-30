@@ -1,11 +1,11 @@
 # a simple protoc tool that Compatible with both arm and x86
 # docker buildx build --push --platform linux/arm64,linux/amd64 --tag nanxi/protoc .
 ARG ALPINE_VERSION=3.18
-ARG GO_VERSION=1.20
-ARG PROTOBUF_VERSION=23.3
+ARG GO_VERSION=1.21
+ARG PROTOBUF_VERSION=24.3
 ARG PROTOC_GEN_GO_VERSION=v1.31.0
-ARG PROTOC_GEN_GO_GRPC_VERSION=v1.56.2
-ARG GRPC_GATEWAY_VERSION=v2.16.0
+ARG PROTOC_GEN_GO_GRPC_VERSION=v1.58.2
+ARG GRPC_GATEWAY_VERSION=v2.18.0
 ARG PROTOC_GEN_DOC_VERSION=v1.5.1
 ARG PROTOC_GEN_VALIDATE_VERSION=v1.0.2
 ARG GRPC_WEB_VERSION=1.4.2
@@ -104,7 +104,7 @@ RUN <<EOF
         install -D ./bazel-bin/generator/protoc-gen-js /out/usr/bin/protoc-gen-js
     fi
 EOF
-    
+
 ARG ALPINE_VERSION
 FROM alpine:${ALPINE_VERSION} as grpc_java
 RUN apk add --no-cache grpc-java
@@ -144,7 +144,7 @@ service YourService { \n\
 RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
  --go_out /build/go --go_opt paths=source_relative --go-grpc_out /build/go --go-grpc_opt paths=source_relative --validate_out=lang=go,paths=source_relative:/build/go \
  --openapiv2_out /build/openapi --openapiv2_opt json_names_for_fields=false --openapiv2_opt logtostderr=true \
- --python_out=/build/python --python-grpc_out=/build/python --plugin=protoc-gen-python-grpc=/usr/bin/grpc_python_plugin \
+ --python_out=/build/python --pyi_out=/build/python --python-grpc_out=/build/python --plugin=protoc-gen-python-grpc=/usr/bin/grpc_python_plugin \
  --java_out=/build/java --java-grpc_out=/build/java --plugin=protoc-gen-java-grpc=/usr/bin/protoc-gen-grpc-java \
  --grpc-gateway_out /build/go --grpc-gateway_opt logtostderr=true --grpc-gateway_opt paths=source_relative --grpc-gateway_opt generate_unbound_methods=true \
  --ts_out=/build/web --ts_opt force_server_none \
@@ -154,19 +154,19 @@ RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.prot
 RUN apk add --no-cache gcompat
 RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
    --js_out=import_style=es6:/build/web --grpc-web_out=import_style=typescript,mode=grpcweb:/build/web  \
- {} \;' >> /build/build_web.sh 
+ {} \;' >> /build/build_web.sh
 
 RUN echo $'#!/bin/sh\nif ! [ -d ./third_party ]; then return 0; fi && find ./third_party -type f -name '*.proto' -exec protoc -I ./third_party --proto_path=/usr/include \
  --go_out /build/go/third_party --go_opt paths=source_relative --go-grpc_out /build/go/third_party --go-grpc_opt paths=source_relative \
  {} \;' >> /build/build_third_party.sh
-    
+
 RUN echo $'#!/bin/sh\nfor f in `find ./ -not -path "./third_party/*" -type f -name '*.proto' -print`;do \
     filename=${f##*/} && dir0=${f%/*} && dir=${dir0##*./} && mkdir -p /build/docs/${dir} && \
     protoc -I . --proto_path=/usr/include \
     --doc_out=/build/docs/${dir} --doc_opt=markdown,${filename%.proto}.md ${f};\
      done;' >> /build/build_docs.sh
 
-RUN chmod +x /build/build.sh /build/build_third_party.sh /build/build_docs.sh /build/build_web.sh 
+RUN chmod +x /build/build.sh /build/build_third_party.sh /build/build_docs.sh /build/build_web.sh
 RUN chown -R nobody.nobody /build /usr/include
 
 WORKDIR /build/proto
