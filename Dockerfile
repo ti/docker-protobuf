@@ -1,4 +1,5 @@
 # a simple protoc tool that Compatible with both arm and x86
+# docker buildx create --use --name mbuild
 # docker buildx build --push --platform linux/arm64,linux/amd64 --tag nanxi/protoc .
 ARG ALPINE_VERSION=3.18
 ARG GO_VERSION=1.21
