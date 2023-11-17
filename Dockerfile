@@ -167,7 +167,11 @@ RUN echo $'#!/bin/sh\nfor f in `find ./ -not -path "./third_party/*" -type f -na
     --doc_out=/build/docs/${dir} --doc_opt=markdown,${filename%.proto}.md ${f};\
      done;' >> /build/build_docs.sh
 
-RUN chmod +x /build/build.sh /build/build_third_party.sh /build/build_docs.sh /build/build_web.sh
+RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
+   --python_out=/build/python --pyi_out=/build/python --python-grpc_out=/build/python --plugin=protoc-gen-python-grpc=/usr/bin/grpc_python_plugin \
+ {} \;' >> /build/build_python.sh
+ 
+RUN chmod +x /build/build.sh /build/build_third_party.sh /build/build_docs.sh /build/build_web.sh /build/build_python.sh
 RUN chown -R nobody.nobody /build /usr/include
 
 WORKDIR /build/proto
