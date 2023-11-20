@@ -27,13 +27,6 @@ RUN mkdir -p ${GOPATH}/src/github.com/grpc/grpc-go && \
     cd ${GOPATH}/src/github.com/grpc/grpc-go/cmd/protoc-gen-go-grpc && \
     CGO_ENABLED=0 go build -ldflags '-w -s' -o /out/usr/bin/protoc-gen-go-grpc
 
-ARG PROTOC_GEN_VALIDATE_VERSION
-RUN mkdir -p ${GOPATH}/src/github.com/envoyproxy/protoc-gen-validate && \
-    curl -sSL https://github.com/envoyproxy/protoc-gen-validate/archive/refs/tags/${PROTOC_GEN_VALIDATE_VERSION}.tar.gz | tar xz --strip 1 -C ${GOPATH}/src/github.com/envoyproxy/protoc-gen-validate && \
-    cd ${GOPATH}/src/github.com/envoyproxy/protoc-gen-validate && \
-    CGO_ENABLED=0 go build -ldflags '-w -s' -o  /out/usr/bin/protoc-gen-validate . && \
-    install -D ./validate/validate.proto /out/usr/include/validate/validate.proto
-
 ARG GRPC_GATEWAY_VERSION
 RUN mkdir -p ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway && \
     curl -sSL https://github.com/grpc-ecosystem/grpc-gateway/archive/refs/tags/${GRPC_GATEWAY_VERSION}.tar.gz | tar xz --strip 1 -C ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway && \
@@ -88,7 +81,6 @@ RUN <<EOF
     npm uninstall -g @protobuf-ts/plugin
 EOF
 
-
 ARG PROTOC_GEN_JS_VERSION
 RUN <<EOF
     # Skip arm64 build due to https://github.com/bazelbuild/bazel/issues/17220
@@ -105,6 +97,13 @@ RUN <<EOF
         install -D ./bazel-bin/generator/protoc-gen-js /out/usr/bin/protoc-gen-js
     fi
 EOF
+
+ARG PROTOC_GEN_VALIDATE_VERSION
+RUN mkdir -p ${GOPATH}/src/github.com/bufbuild/protoc-gen-validate && \
+    curl -sSL https://github.com/bufbuild/protoc-gen-validate/archive/refs/heads/main.tar.gz | tar xz --strip 1 -C ${GOPATH}/src/github.com/bufbuild/protoc-gen-validate && \
+    cd ${GOPATH}/src/github.com/bufbuild/protoc-gen-validate && \
+    CGO_ENABLED=0 go build -ldflags '-w -s' -o  /out/usr/bin/protoc-gen-validate . && \
+    install -D ./validate/validate.proto /out/usr/include/validate/validate.proto
 
 ARG ALPINE_VERSION
 FROM alpine:${ALPINE_VERSION} as grpc_java
@@ -124,7 +123,8 @@ RUN ln -s /usr/bin/grpc_php_plugin /usr/bin/protoc-gen-grpc-php
 RUN ln -s /usr/bin/grpc_python_plugin /usr/bin/protoc-gen-grpc-python
 RUN ln -s /usr/bin/grpc_ruby_plugin /usr/bin/protoc-gen-grpc-ruby
 
-RUN mkdir -p /build/proto/third_party /build/go/third_party /build/openapi /build/java /build/python /build/web /build/docs
+RUN mkdir -p /build/proto/third_party /build/go/third_party /build/openapi /build/java /build/python /build/web /build/docs /build/descriptor
+
 # Exmaple Proto
 RUN echo $'syntax = "proto3"; \n\
 package your.service.v1; \n\
@@ -151,7 +151,6 @@ RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.prot
  --ts_out=/build/web --ts_opt force_server_none \
  {} \;' >> /build/build.sh
 
-
 RUN apk add --no-cache gcompat
 RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
    --js_out=import_style=es6:/build/web --grpc-web_out=import_style=typescript,mode=grpcweb:/build/web  \
@@ -170,8 +169,12 @@ RUN echo $'#!/bin/sh\nfor f in `find ./ -not -path "./third_party/*" -type f -na
 RUN echo $'#!/bin/sh\nfind ./ -not -path "./third_party/*" -type f -name '*.proto' -exec protoc -I . --proto_path=/usr/include \
    --python_out=/build/python --pyi_out=/build/python --python-grpc_out=/build/python --plugin=protoc-gen-python-grpc=/usr/bin/grpc_python_plugin \
  {} \;' >> /build/build_python.sh
- 
-RUN chmod +x /build/build.sh /build/build_third_party.sh /build/build_docs.sh /build/build_web.sh /build/build_python.sh
+
+RUN echo $'#!/bin/sh\nprotoc -I . --include_imports --include_source_info --proto_path=/usr/include \
+   --descriptor_set_out=/build/descriptor/descriptor.pb \
+ $(find . -type f -name "*.proto"  ! -path "./third_party/*"  | tr '\n' ' ');' >> /build/build_descriptor.sh
+
+RUN chmod +x /build/build.sh /build/build_third_party.sh /build/build_docs.sh /build/build_web.sh /build/build_python.sh /build/build_descriptor.sh
 RUN chown -R nobody.nobody /build /usr/include
 
 WORKDIR /build/proto
