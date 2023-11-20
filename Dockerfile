@@ -32,7 +32,7 @@ RUN mkdir -p ${GOPATH}/src/github.com/envoyproxy/protoc-gen-validate && \
     curl -sSL https://github.com/envoyproxy/protoc-gen-validate/archive/refs/tags/${PROTOC_GEN_VALIDATE_VERSION}.tar.gz | tar xz --strip 1 -C ${GOPATH}/src/github.com/envoyproxy/protoc-gen-validate && \
     cd ${GOPATH}/src/github.com/envoyproxy/protoc-gen-validate && \
     CGO_ENABLED=0 go build -ldflags '-w -s' -o  /out/usr/bin/protoc-gen-validate . && \
-    install -D ./validate/validate.proto /out/usr/include/github.com/envoyproxy/protoc-gen-validate/validate/validate.proto
+    install -D ./validate/validate.proto /out/usr/include/validate/validate.proto
 
 ARG GRPC_GATEWAY_VERSION
 RUN mkdir -p ${GOPATH}/src/github.com/grpc-ecosystem/grpc-gateway && \
