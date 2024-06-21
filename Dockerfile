@@ -8,9 +8,11 @@ ARG PROTOC_GEN_GO_VERSION=v1.31.0
 ARG PROTOC_GEN_GO_GRPC_VERSION=v1.59.0
 ARG GRPC_GATEWAY_VERSION=v2.18.1
 ARG PROTOC_GEN_DOC_VERSION=v1.5.1
-ARG PROTOC_GEN_VALIDATE_VERSION=v1.0.2
+ARG PROTOC_GEN_VALIDATE_VERSION=v1.0.4
+ARG BUF_PROTOVALIDATE_VERSION=0.6.4
 ARG GRPC_WEB_VERSION=1.5.0
 ARG PROTOC_GEN_JS_VERSION=3.21.2
+
 
 FROM golang:${GO_VERSION}-alpine as builder
 RUN apk add --no-cache curl unzip
@@ -104,6 +106,13 @@ RUN mkdir -p ${GOPATH}/src/github.com/bufbuild/protoc-gen-validate && \
     cd ${GOPATH}/src/github.com/bufbuild/protoc-gen-validate && \
     CGO_ENABLED=0 go build -ldflags '-w -s' -o  /out/usr/bin/protoc-gen-validate . && \
     install -D ./validate/validate.proto /out/usr/include/validate/validate.proto
+
+ARG BUF_PROTOVALIDATE_VERSION
+RUN mkdir -p ${GOPATH}/src/github.com/bufbuild/protovalidate && \
+    curl -sSL https://github.com/bufbuild/protovalidate/archive/refs/heads/main.tar.gz | tar xz --strip 1 -C ${GOPATH}/src/github.com/bufbuild/protoc-gen-validate && \
+    cd ${GOPATH}/src/github.com/bufbuild/protovalidate && \
+    cp -rf  ./proto/protovalidate/buf out/usr/include/buf
+
 
 ARG ALPINE_VERSION
 FROM alpine:${ALPINE_VERSION} as grpc_java
