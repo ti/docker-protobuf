@@ -2,11 +2,11 @@
 # docker buildx create --use --name mbuild
 # docker buildx build --push --platform linux/arm64,linux/amd64 --tag nanxi/protoc .
 ARG ALPINE_VERSION=3.18
-ARG GO_VERSION=1.21
-ARG PROTOBUF_VERSION=25.1
-ARG PROTOC_GEN_GO_VERSION=v1.31.0
-ARG PROTOC_GEN_GO_GRPC_VERSION=v1.59.0
-ARG GRPC_GATEWAY_VERSION=v2.18.1
+ARG GO_VERSION=1.22
+ARG PROTOBUF_VERSION=27.1
+ARG PROTOC_GEN_GO_VERSION=v1.34.2
+ARG PROTOC_GEN_GO_GRPC_VERSION=v1.64.0
+ARG GRPC_GATEWAY_VERSION=v2.20.0
 ARG PROTOC_GEN_DOC_VERSION=v1.5.1
 ARG PROTOC_GEN_VALIDATE_VERSION=v1.0.4
 ARG BUF_PROTOVALIDATE_VERSION=0.6.4
@@ -109,9 +109,9 @@ RUN mkdir -p ${GOPATH}/src/github.com/bufbuild/protoc-gen-validate && \
 
 ARG BUF_PROTOVALIDATE_VERSION
 RUN mkdir -p ${GOPATH}/src/github.com/bufbuild/protovalidate && \
-    curl -sSL https://github.com/bufbuild/protovalidate/archive/refs/heads/main.tar.gz | tar xz --strip 1 -C ${GOPATH}/src/github.com/bufbuild/protoc-gen-validate && \
+    curl -sSL https://github.com/bufbuild/protovalidate/archive/refs/heads/main.tar.gz | tar xz --strip 1 -C ${GOPATH}/src/github.com/bufbuild/protovalidate && \
     cd ${GOPATH}/src/github.com/bufbuild/protovalidate && \
-    cp -rf  ./proto/protovalidate/buf out/usr/include/buf
+    cp -rf ./proto/protovalidate/buf /out/usr/include/buf
 
 
 ARG ALPINE_VERSION
